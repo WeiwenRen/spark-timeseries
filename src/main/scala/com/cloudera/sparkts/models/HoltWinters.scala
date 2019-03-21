@@ -1,60 +1,56 @@
 /**
- * Copyright (c) 2015, Cloudera, Inc. All Rights Reserved.
- *
- * Cloudera, Inc. licenses this file to you under the Apache License,
- * Version 2.0 (the "License"). You may not use this file except in
- * compliance with the License. You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for
- * the specific language governing permissions and limitations under the
- * License.
- */
+  * Copyright (c) 2015, Cloudera, Inc. All Rights Reserved.
+  *
+  * Cloudera, Inc. licenses this file to you under the Apache License,
+  * Version 2.0 (the "License"). You may not use this file except in
+  * compliance with the License. You may obtain a copy of the License at
+  *
+  * http://www.apache.org/licenses/LICENSE-2.0
+  *
+  * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+  * CONDITIONS OF ANY KIND, either express or implied. See the License for
+  * the specific language governing permissions and limitations under the
+  * License.
+  */
 
 package com.cloudera.sparkts.models
 
 import org.apache.commons.math3.analysis.MultivariateFunction
-import org.apache.spark.mllib.linalg._
-import org.apache.commons.math3.optim.MaxIter
-import org.apache.commons.math3.optim.nonlinear.scalar.ObjectiveFunction
-import org.apache.commons.math3.optim.MaxEval
-import org.apache.commons.math3.optim.SimpleBounds
+import org.apache.commons.math3.optim.{InitialGuess, MaxEval, MaxIter, SimpleBounds}
+import org.apache.commons.math3.optim.nonlinear.scalar.{GoalType, ObjectiveFunction}
 import org.apache.commons.math3.optim.nonlinear.scalar.noderiv.BOBYQAOptimizer
-import org.apache.commons.math3.optim.InitialGuess
-import org.apache.commons.math3.optim.nonlinear.scalar.GoalType
+import org.apache.spark.mllib.linalg._
 
 /**
- * Triple exponential smoothing takes into account seasonal changes as well as trends.
- * Seasonality is deﬁned to be the tendency of time-series data to exhibit behavior that repeats
- * itself every L periods, much like any harmonic function.
- *
- * The Holt-Winters method is a popular and effective approach to forecasting seasonal time series
- *
- * See https://en.wikipedia.org/wiki/Exponential_smoothing#Triple_exponential_smoothing
- * for more information on Triple Exponential Smoothing
- * See https://www.otexts.org/fpp/7/5 and
- * https://stat.ethz.ch/R-manual/R-devel/library/stats/html/HoltWinters.html
- * for more information on Holt Winter Method.
- */
+  * Triple exponential smoothing takes into account seasonal changes as well as trends.
+  * Seasonality is deﬁned to be the tendency of time-series data to exhibit behavior that repeats
+  * itself every L periods, much like any harmonic function.
+  *
+  * The Holt-Winters method is a popular and effective approach to forecasting seasonal time series
+  *
+  * See https://en.wikipedia.org/wiki/Exponential_smoothing#Triple_exponential_smoothing
+  * for more information on Triple Exponential Smoothing
+  * See https://www.otexts.org/fpp/7/5 and
+  * https://stat.ethz.ch/R-manual/R-devel/library/stats/html/HoltWinters.html
+  * for more information on Holt Winter Method.
+  */
 object HoltWinters {
 
   /**
-   * Fit HoltWinter model to a given time series. Holt Winter Model has three parameters
-   * level, trend and season component of time series.
-   * We use BOBYQA optimizer which is used to calculate minimum of a function with
-   * bounded constraints and without using derivatives.
-   * See http://www.damtp.cam.ac.uk/user/na/NA_papers/NA2009_06.pdf for more details.
-   *
-   * @param ts Time Series for which we want to fit HoltWinter Model
-   * @param period Seasonality of data i.e  period of time before behavior begins to repeat itself
-   * @param modelType Two variations differ in the nature of the seasonal component.
-   *  	Additive method is preferred when seasonal variations are roughly constant through the series,
-   *  	Multiplicative method is preferred when the seasonal variations are changing
-   *  	proportional to the level of the series.
-   * @param method: Currently only BOBYQA is supported.
-   */
+    * Fit HoltWinter model to a given time series. Holt Winter Model has three parameters
+    * level, trend and season component of time series.
+    * We use BOBYQA optimizer which is used to calculate minimum of a function with
+    * bounded constraints and without using derivatives.
+    * See http://www.damtp.cam.ac.uk/user/na/NA_papers/NA2009_06.pdf for more details.
+    *
+    * @param ts        Time Series for which we want to fit HoltWinter Model
+    * @param period    Seasonality of data i.e  period of time before behavior begins to repeat itself
+    * @param modelType Two variations differ in the nature of the seasonal component.
+    *                  Additive method is preferred when seasonal variations are roughly constant through the series,
+    *                  Multiplicative method is preferred when the seasonal variations are changing
+    *                  proportional to the level of the series.
+    * @param method    : Currently only BOBYQA is supported.
+    */
   def fitModel(ts: Vector, period: Int, modelType: String = "additive", method: String = "BOBYQA")
   : HoltWintersModel = {
     method match {
@@ -63,7 +59,7 @@ object HoltWinters {
     }
   }
 
-  def fitModelWithBOBYQA(ts: Vector, period: Int, modelType:String): HoltWintersModel = {
+  def fitModelWithBOBYQA(ts: Vector, period: Int, modelType: String): HoltWintersModel = {
     val optimizer = new BOBYQAOptimizer(7)
     val objectiveFunction = new ObjectiveFunction(new MultivariateFunction() {
       def value(params: Array[Double]): Double = {
@@ -77,30 +73,29 @@ object HoltWinters {
     val maxEval = new MaxEval(30000)
     val goal = GoalType.MINIMIZE
     val bounds = new SimpleBounds(Array(0.0, 0.0, 0.0), Array(1.0, 1.0, 1.0))
-    val optimal = optimizer.optimize(objectiveFunction, goal, bounds,initGuess, maxIter, maxEval)
+    val optimal = optimizer.optimize(objectiveFunction, goal, bounds, initGuess, maxIter, maxEval)
     val params = optimal.getPoint
     new HoltWintersModel(modelType, period, params(0), params(1), params(2))
   }
 }
 
-class HoltWintersModel(
-    val modelType: String,
-    val period: Int,
-    val alpha: Double,
-    val beta: Double,
-    val gamma: Double) extends TimeSeriesModel {
+class HoltWintersModel(val modelType: String,
+                       val period: Int,
+                       val alpha: Double,
+                       val beta: Double,
+                       val gamma: Double) extends TimeSeriesModel {
 
   if (!modelType.equalsIgnoreCase("additive") && !modelType.equalsIgnoreCase("multiplicative")) {
     throw new IllegalArgumentException("Invalid model type: " + modelType)
   }
-  val additive = modelType.equalsIgnoreCase("additive")
+  val additive: Boolean = modelType.equalsIgnoreCase("additive")
 
   /**
-   * Calculates sum of squared errors, used to estimate the alpha and beta parameters
-   *
-   * @param ts A time series for which we want to calculate the SSE, given the current parameters
-   * @return SSE
-   */
+    * Calculates sum of squared errors, used to estimate the alpha and beta parameters
+    *
+    * @param ts A time series for which we want to calculate the SSE, given the current parameters
+    * @return SSE
+    */
   def sse(ts: Vector): Double = {
     val n = ts.size
     val smoothed = new DenseVector(Array.fill(n)(0.0))
@@ -110,7 +105,7 @@ class HoltWintersModel(
     var sqrErrors = 0.0
 
     // We predict only from period by using the first period - 1 elements.
-    for(i <- period to (n - 1)) {
+    for (i <- period until n) {
       error = ts(i) - smoothed(i)
       sqrErrors += error * error
     }
@@ -119,31 +114,31 @@ class HoltWintersModel(
   }
 
   /**
-   * {@inheritDoc}
-   */
+    * {@inheritDoc }
+    */
   override def removeTimeDependentEffects(ts: Vector, dest: Vector = null): Vector = {
     throw new UnsupportedOperationException("not yet implemented")
   }
 
   /**
-   * {@inheritDoc}
-   */
+    * {@inheritDoc }
+    */
   override def addTimeDependentEffects(ts: Vector, dest: Vector): Vector = {
     val destArr = dest.toArray
     val fitted = getHoltWintersComponents(ts)._1
-    for (i <- 0 to (dest.size - 1)) {
+    for (i <- 0 until dest.size) {
       destArr(i) = fitted(i)
     }
     dest
   }
 
   /**
-   * Final prediction Value is sum of level trend and season
-   * But in R's stats:HoltWinters additional weight is given for trend
-   *
-   * @param ts
-   * @param dest
-   */
+    * Final prediction Value is sum of level trend and season
+    * But in R's stats:HoltWinters additional weight is given for trend
+    *
+    * @param ts
+    * @param dest
+    */
   def forecast(ts: Vector, dest: Vector): Vector = {
     val destArr = dest.toArray
     val (_, level, trend, season) = getHoltWintersComponents(ts)
@@ -168,15 +163,15 @@ class HoltWintersModel(
   }
 
   /**
-   * Start from the intial parameters and then iterate to find the final parameters
-   * using the equations of HoltWinter Method.
-   * See https://www.otexts.org/fpp/7/5 and
-   * https://stat.ethz.ch/R-manual/R-devel/library/stats/html/HoltWinters.html
-   * for more information on Holt Winter Method equations.
-   *
-   * @param ts A time series for which we want the HoltWinter parameters level,trend and season.
-   * @return (level trend season). Final vectors of level trend and season are returned.
-   */
+    * Start from the intial parameters and then iterate to find the final parameters
+    * using the equations of HoltWinter Method.
+    * See https://www.otexts.org/fpp/7/5 and
+    * https://stat.ethz.ch/R-manual/R-devel/library/stats/html/HoltWinters.html
+    * for more information on Holt Winter Method equations.
+    *
+    * @param ts A time series for which we want the HoltWinter parameters level,trend and season.
+    * @return (level trend season). Final vectors of level trend and season are returned.
+    */
   def getHoltWintersComponents(ts: Vector): (Vector, Vector, Vector, Vector) = {
     val n = ts.size
     require(n >= 2, "Requires length of at least 2")
@@ -190,11 +185,11 @@ class HoltWintersModel(
     val (initLevel, initTrend, initSeason) = initHoltWinters(ts)
     level(0) = initLevel
     trend(0) = initTrend
-    for (i <- 0 until initSeason.size){
+    for (i <- initSeason.indices) {
       season(i) = initSeason(i)
     }
 
-    for (i <- 0 to (n - period - 1)) {
+    for (i <- 0 until n - period) {
       dest(i + period) = level(i) + trend(i)
 
       // Add the seasonal factor for additive and multiply for multiplicative model.
@@ -225,8 +220,8 @@ class HoltWintersModel(
     (Vectors.dense(dest), Vectors.dense(level), Vectors.dense(trend), Vectors.dense(season))
   }
 
-  def getKernel(): (Array[Double]) = {
-    if (period % 2 == 0){
+  def getKernel: Array[Double] = {
+    if (period % 2 == 0) {
       val kernel = Array.fill(period + 1)(1.0 / period)
       kernel(0) = 0.5 / period
       kernel(period) = 0.5 / period
@@ -237,15 +232,16 @@ class HoltWintersModel(
   }
 
   /**
-   * Function to calculate the Weighted moving average/convolution using above kernel/weights
-   * for input data.
-   * See http://robjhyndman.com/papers/movingaverage.pdf for more information
-   * @param inData Series on which you want to do moving average
-   * @param kernel Weight vector for weighted moving average
-   */
-  def convolve(inData: Array[Double], kernel: Array[Double]): (Array[Double]) = {
-    val kernelSize = kernel.size
-    val dataSize = inData.size
+    * Function to calculate the Weighted moving average/convolution using above kernel/weights
+    * for input data.
+    * See http://robjhyndman.com/papers/movingaverage.pdf for more information
+    *
+    * @param inData Series on which you want to do moving average
+    * @param kernel Weight vector for weighted moving average
+    */
+  def convolve(inData: Array[Double], kernel: Array[Double]): Array[Double] = {
+    val kernelSize = kernel.length
+    val dataSize = inData.length
 
     val outData = new Array[Double](dataSize - kernelSize + 1)
 
@@ -264,37 +260,38 @@ class HoltWintersModel(
   }
 
   /**
-   * Function to get the initial level, trend and season using method suggested in
-   * http://robjhyndman.com/hyndsight/hw-initialization/
-   * @param ts
-   */
+    * Function to get the initial level, trend and season using method suggested in
+    * http://robjhyndman.com/hyndsight/hw-initialization/
+    *
+    * @param ts
+    */
   def initHoltWinters(ts: Vector): (Double, Double, Array[Double]) = {
     val arrTs = ts.toArray
 
     // Decompose a window of time series into level trend and seasonal using convolution
-    val kernel = getKernel()
-    val kernelSize = kernel.size
+    val kernel = getKernel
+    val kernelSize = kernel.length
     val trend = convolve(arrTs.take(period * 2), kernel)
 
     // Remove the trend from time series. Subtract for additive and divide for multiplicative
-    val n = (kernelSize -1) / 2
+    val n = (kernelSize - 1) / 2
     val removeTrend = arrTs.take(period * 2).zip(
-      Array.fill(n)(0.0) ++ trend ++ Array.fill(n)(0.0)).map{
+      Array.fill(n)(0.0) ++ trend ++ Array.fill(n)(0.0)).map {
       case (a, t) =>
-        if (t != 0){
+        if (t != 0) {
           if (additive) {
-            (a - t)
+            a - t
           } else {
-            (a / t)
+            a / t
           }
-        }  else{
+        } else {
           0
         }
     }
 
     // seasonal mean is sum of mean of all season values of that period
     val seasonalMean = removeTrend.splitAt(period).zipped.map { case (prevx, x) =>
-      if (prevx == 0 || x == 0) (x + prevx) else (x + prevx) / 2
+      if (prevx == 0 || x == 0) x + prevx else (x + prevx) / 2
     }
 
     val meanOfFigures = seasonalMean.sum / period
@@ -302,17 +299,17 @@ class HoltWintersModel(
     // The seasonal mean is then centered and removed to get season.
     // Subtract for additive and divide for multiplicative.
     val initSeason = if (additive) {
-      seasonalMean.map(_ - meanOfFigures )
+      seasonalMean.map(_ - meanOfFigures)
     } else {
-      seasonalMean.map(_ / meanOfFigures )
+      seasonalMean.map(_ / meanOfFigures)
     }
 
     // Do Simple Linear Regression to find the initial level and trend
-    val indices = 1 to trend.size
+    val indices = 1 to trend.length
     val xbar = (indices.sum: Double) / indices.size
-    val ybar = trend.sum / trend.size
+    val ybar = trend.sum / trend.length
 
-    val xxbar = indices.map( x => (x - xbar) * (x - xbar) ).sum
+    val xxbar = indices.map(x => (x - xbar) * (x - xbar)).sum
     val xybar = indices.zip(trend).map {
       case (x, y) => (x - xbar) * (y - ybar)
     }.sum

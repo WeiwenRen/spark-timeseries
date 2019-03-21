@@ -1,36 +1,34 @@
 /**
- * Copyright (c) 2015, Cloudera, Inc. All Rights Reserved.
- *
- * Cloudera, Inc. licenses this file to you under the Apache License,
- * Version 2.0 (the "License"). You may not use this file except in
- * compliance with the License. You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for
- * the specific language governing permissions and limitations under the
- * License.
- */
+  * Copyright (c) 2015, Cloudera, Inc. All Rights Reserved.
+  *
+  * Cloudera, Inc. licenses this file to you under the Apache License,
+  * Version 2.0 (the "License"). You may not use this file except in
+  * compliance with the License. You may obtain a copy of the License at
+  *
+  * http://www.apache.org/licenses/LICENSE-2.0
+  *
+  * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+  * CONDITIONS OF ANY KIND, either express or implied. See the License for
+  * the specific language governing permissions and limitations under the
+  * License.
+  */
 
 package com.cloudera.sparkts
 
 import java.nio.ByteBuffer
 import java.time._
 
-import scala.collection.mutable.ArrayBuffer
-
+import com.cloudera.sparkts.PythonConnector._
+import org.apache.spark.api.java.function.{Function, PairFunction}
 import org.apache.spark.mllib.linalg.{DenseVector, Vector}
 
-import org.apache.spark.api.java.function.{PairFunction, Function}
-
-import PythonConnector._
+import scala.collection.mutable.ArrayBuffer
 
 /**
- * This file contains utilities used by the spark-timeseries Python bindings to communicate with
- * the JVM.  BytesToKeyAndSeries and KeyAndSeriesToBytes write and read bytes in the format
- * read and written by the Python TimeSeriesSerializer class.
- */
+  * This file contains utilities used by the spark-timeseries Python bindings to communicate with
+  * the JVM.  BytesToKeyAndSeries and KeyAndSeriesToBytes write and read bytes in the format
+  * read and written by the Python TimeSeriesSerializer class.
+  */
 private object PythonConnector {
   val INT_SIZE = 4
   val DOUBLE_SIZE = 8
@@ -44,7 +42,7 @@ private object PythonConnector {
       i += 1
     }
   }
-  
+
   def arrayListToSeq(list: java.util.ArrayList[Any]): Seq[Any] = {
     // implement with ArrayBuffer
     var result = ArrayBuffer[Any]()
@@ -53,7 +51,7 @@ private object PythonConnector {
     }
     result
   }
-  
+
 }
 
 private class BytesToKeyAndSeries extends PairFunction[Array[Byte], String, Vector] {

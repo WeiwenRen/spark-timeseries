@@ -20,9 +20,9 @@ import com.cloudera.sparkts.MatrixUtil
 import com.cloudera.sparkts.MatrixUtil.{dvBreezeToSpark, mBreezeToSpark, toBreeze}
 import com.cloudera.sparkts.UnivariateTimeSeries.{differencesOfOrderD, inverseDifferencesOfOrderD}
 import org.apache.commons.math3.analysis.{MultivariateFunction, MultivariateVectorFunction}
-import org.apache.commons.math3.optim.{InitialGuess, MaxEval, MaxIter, SimpleValueChecker}
-import org.apache.commons.math3.optim.nonlinear.scalar.{GoalType, ObjectiveFunction, ObjectiveFunctionGradient}
 import org.apache.commons.math3.optim.nonlinear.scalar.gradient.NonLinearConjugateGradientOptimizer
+import org.apache.commons.math3.optim.nonlinear.scalar.{GoalType, ObjectiveFunction, ObjectiveFunctionGradient}
+import org.apache.commons.math3.optim.{InitialGuess, MaxEval, MaxIter, SimpleValueChecker}
 import org.apache.spark.mllib.linalg.{DenseVector, Vector}
 
 /**
@@ -56,16 +56,15 @@ object ARIMAX {
     *                            increasing order of lag), MA parameters (in increasing order of lag) and
     *                            coefficients for exogenous variables (xregMaxLag + 1) for each column.
     */
-  def fitModel(
-      p: Int,
-      d: Int,
-      q: Int,
-      ts: Vector,
-      xreg: Matrix[Double],
-      xregMaxLag: Int,
-      includeOriginalXreg: Boolean = true,
-      includeIntercept: Boolean = true,
-      userInitParams: Option[Array[Double]] = None): ARIMAXModel = {
+  def fitModel(p: Int,
+               d: Int,
+               q: Int,
+               ts: Vector,
+               xreg: Matrix[Double],
+               xregMaxLag: Int,
+               includeOriginalXreg: Boolean = true,
+               includeIntercept: Boolean = true,
+               userInitParams: Option[Array[Double]] = None): ARIMAXModel = {
 
     val differentialTs = differencesOfOrderD(ts, d).toArray.drop(d)
 
@@ -86,14 +85,13 @@ object ARIMAX {
     model
   }
 
-  private def estimateARXCoefficients(
-              ts: Vector,
-              xreg: Matrix[Double],
-              p: Int,
-              d: Int,
-              xregMaxLag: Int,
-              includeOriginalXreg: Boolean,
-              includeIntercept: Boolean): Array[Double] = {
+  private def estimateARXCoefficients(ts: Vector,
+                                      xreg: Matrix[Double],
+                                      p: Int,
+                                      d: Int,
+                                      xregMaxLag: Int,
+                                      includeOriginalXreg: Boolean,
+                                      includeIntercept: Boolean): Array[Double] = {
 
     // [Time series data and exogenous values differentiate (http://robjhyndman.com/hyndsight/arimax/)
     val tsVector = new BreezeDenseVector(ts.toArray)
@@ -108,11 +106,10 @@ object ARIMAX {
     c ++ arxModel.coefficients
   }
 
-  private def estimateMACoefficients(
-              p: Int,
-              q: Int,
-              differentialTs: Array[Double],
-              includeIntercept: Boolean): Array[Double] = {
+  private def estimateMACoefficients(p: Int,
+                                     q: Int,
+                                     differentialTs: Array[Double],
+                                     includeIntercept: Boolean): Array[Double] = {
     ARIMA.hannanRissanenInit(p, q, differentialTs, includeIntercept).takeRight(q)
   }
 
@@ -130,15 +127,14 @@ object ARIMAX {
     * @param initParams          Initial parameter guess for optimization
     * @return Parameters optimized using CSS estimator, with method conjugate gradient descent
     */
-  private def fitWithCSSCGD(
-                             p: Int,
-                             d: Int,
-                             q: Int,
-                             xregMaxLag: Int,
-                             diffedY: Array[Double],
-                             includeOriginalXreg: Boolean,
-                             includeIntercept: Boolean,
-                             initParams: Array[Double]): Array[Double] = {
+  private def fitWithCSSCGD(p: Int,
+                            d: Int,
+                            q: Int,
+                            xregMaxLag: Int,
+                            diffedY: Array[Double],
+                            includeOriginalXreg: Boolean,
+                            includeIntercept: Boolean,
+                            initParams: Array[Double]): Array[Double] = {
 
     val optimizer = new NonLinearConjugateGradientOptimizer(
       NonLinearConjugateGradientOptimizer.Formula.FLETCHER_REEVES,
@@ -178,14 +174,13 @@ object ARIMAX {
   * @param includeOriginalXreg A boolean flag indicating if the non-lagged exogenous variables should be included.
   * @param includeIntercept    A boolean to indicate if the regression should be run without an intercept
   */
-class ARIMAXModel(
-                   val p: Int,
-                   val d: Int,
-                   val q: Int,
-                   val xregMaxLag: Int,
-                   val coefficients: Array[Double],
-                   val includeOriginalXreg: Boolean = true,
-                   val includeIntercept: Boolean = true) extends TimeSeriesModel {
+class ARIMAXModel(val p: Int,
+                  val d: Int,
+                  val q: Int,
+                  val xregMaxLag: Int,
+                  val coefficients: Array[Double],
+                  val includeOriginalXreg: Boolean = true,
+                  val includeIntercept: Boolean = true) extends TimeSeriesModel {
 
   /**
     * Provide fitted values for timeseries ts as 1-step ahead forecasts, based on current
@@ -414,13 +409,12 @@ class ARIMAXModel(
     * @return the time series resulting from the interaction of the parameters with the model's
     *         coefficients
     */
-  private def iterateARMA(
-                           ts: Vector,
-                           history: BreezeDenseVector[Double],
-                           op: (Double, Double) => Double,
-                           goldStandard: Vector = null,
-                           errors: Vector = null,
-                           initMATerms: Array[Double] = null): BreezeDenseVector[Double] = {
+  private def iterateARMA(ts: Vector,
+                          history: BreezeDenseVector[Double],
+                          op: (Double, Double) => Double,
+                          goldStandard: Vector = null,
+                          errors: Vector = null,
+                          initMATerms: Array[Double] = null): BreezeDenseVector[Double] = {
     require(goldStandard != null || errors != null, "goldStandard or errors must be passed in")
 
     val maTerms = if (initMATerms == null) Array.fill(q)(0.0) else initMATerms
@@ -476,14 +470,13 @@ class ARIMAXModel(
     * @return The time series resulting from the interaction of the parameters with the model's
     *         coefficients
     */
-  private def iterateARMAX(
-                            ts: Vector,
-                            history: BreezeDenseVector[Double],
-                            op: (Double, Double) => Double,
-                            goldStandard: Vector = null,
-                            errors: Vector = null,
-                            initMATerms: Array[Double] = null,
-                            exogenousVar: Array[Array[Double]]): BreezeDenseVector[Double] = {
+  private def iterateARMAX(ts: Vector,
+                           history: BreezeDenseVector[Double],
+                           op: (Double, Double) => Double,
+                           goldStandard: Vector = null,
+                           errors: Vector = null,
+                           initMATerms: Array[Double] = null,
+                           exogenousVar: Array[Array[Double]]): BreezeDenseVector[Double] = {
     require(goldStandard != null || errors != null, "goldStandard or errors must be passed in")
     val maTerms = if (initMATerms == null) Array.fill(q)(0.0) else initMATerms
     val intercept = if (includeIntercept) 1 else 0

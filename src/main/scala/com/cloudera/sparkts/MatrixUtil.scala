@@ -1,29 +1,31 @@
 /**
- * Copyright (c) 2015, Cloudera, Inc. All Rights Reserved.
- *
- * Cloudera, Inc. licenses this file to you under the Apache License,
- * Version 2.0 (the "License"). You may not use this file except in
- * compliance with the License. You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for
- * the specific language governing permissions and limitations under the
- * License.
- */
+  * Copyright (c) 2015, Cloudera, Inc. All Rights Reserved.
+  *
+  * Cloudera, Inc. licenses this file to you under the Apache License,
+  * Version 2.0 (the "License"). You may not use this file except in
+  * compliance with the License. You may obtain a copy of the License at
+  *
+  * http://www.apache.org/licenses/LICENSE-2.0
+  *
+  * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+  * CONDITIONS OF ANY KIND, either express or implied. See the License for
+  * the specific language governing permissions and limitations under the
+  * License.
+  */
 
 package com.cloudera.sparkts
 
 import breeze.linalg._
-import org.apache.spark.mllib.linalg.{DenseVector => SDV, SparseVector => SSV, Vector => SV}
-import org.apache.spark.mllib.linalg.{DenseMatrix => SDM, SparseMatrix => SSM, Matrix => SM}
+import org.apache.spark.mllib.linalg.{
+  DenseMatrix => SDM, DenseVector => SDV,
+  Matrix => SM, SparseMatrix => SSM, SparseVector => SSV, Vector => SV
+}
 
 private[sparkts] object MatrixUtil {
   def transpose(arr: Array[Array[Double]]): Array[Array[Double]] = {
     val mat = new Array[Array[Double]](arr.head.length)
     for (i <- arr.head.indices) {
-      mat(i) = arr.map(_(i))
+      mat(i) = arr.map(_ (i))
     }
     mat
   }
@@ -31,7 +33,7 @@ private[sparkts] object MatrixUtil {
   def matToRowArrs(mat: SM): Array[Array[Double]] = {
     val arrs = new Array[Array[Double]](mat.rows)
     for (r <- 0 until mat.rows) {
-      arrs(r) = toBreeze(mat)(r to r, 0 to mat.cols - 1).toDenseMatrix.toArray
+      arrs(r) = toBreeze(mat)(r to r, 0 until mat.cols).toDenseMatrix.toArray
     }
     arrs
   }
@@ -39,7 +41,7 @@ private[sparkts] object MatrixUtil {
   def matToRowArrs(mat: Matrix[Double]): Array[Array[Double]] = {
     val arrs = new Array[Array[Double]](mat.rows)
     for (r <- 0 until mat.rows) {
-      arrs(r) = mat(r to r, 0 to mat.cols - 1).toDenseMatrix.toArray
+      arrs(r) = mat(r to r, 0 until mat.cols).toDenseMatrix.toArray
     }
     arrs
   }
@@ -48,8 +50,7 @@ private[sparkts] object MatrixUtil {
     vecArrsToMats(arrs, arrs.length).next()
   }
 
-  def vecArrsToMats(vecArrs: Iterator[Array[Double]], chunkSize: Int)
-    : Iterator[DenseMatrix[Double]] = {
+  def vecArrsToMats(vecArrs: Iterator[Array[Double]], chunkSize: Int): Iterator[DenseMatrix[Double]] = {
     new Iterator[DenseMatrix[Double]] {
       def hasNext: Boolean = vecArrs.hasNext
 
@@ -74,11 +75,11 @@ private[sparkts] object MatrixUtil {
   }
 
   /**
-   * Creates a spark-mllib matrix instance from a breeze matrix.
-   *
-   * @param breeze a breeze matrix
-   * @return a spark-mllib Matrix instance
-   */
+    * Creates a spark-mllib matrix instance from a breeze matrix.
+    *
+    * @param breeze a breeze matrix
+    * @return a spark-mllib Matrix instance
+    */
   private[sparkts] def fromBreeze(breeze: Matrix[Double]): SM = {
     breeze match {
       case dm: DenseMatrix[Double] =>
@@ -93,11 +94,11 @@ private[sparkts] object MatrixUtil {
   }
 
   /**
-   * Creates a breeze matrix instance from a spark-mllib matrix.
-   *
-   * @param sparkMatrix a breeze matrix
-   * @return a spark-mllib Matrix instance
-   */
+    * Creates a breeze matrix instance from a spark-mllib matrix.
+    *
+    * @param sparkMatrix a breeze matrix
+    * @return a spark-mllib Matrix instance
+    */
   private[sparkts] def toBreeze(sparkMatrix: SM): Matrix[Double] = {
     sparkMatrix match {
       case dm: SDM =>
@@ -122,18 +123,18 @@ private[sparkts] object MatrixUtil {
   }
 
   /**
-   * Creates a spark-mllib vector instance from a breeze vector.
-   *
-   * @param breezeVector a breeze vector
-   * @return a spark-mllib Vector instance
-   */
+    * Creates a spark-mllib vector instance from a breeze vector.
+    *
+    * @param breezeVector a breeze vector
+    * @return a spark-mllib Vector instance
+    */
   private[sparkts] def fromBreeze(breezeVector: Vector[Double]): SV = {
     breezeVector match {
       case v: DenseVector[Double] =>
         if (v.offset == 0 && v.stride == 1 && v.length == v.data.length) {
           new SDV(v.data)
         } else {
-          new SDV(v.toArray)  // Can't use underlying array directly, so make a new one
+          new SDV(v.toArray) // Can't use underlying array directly, so make a new one
         }
       case v: SparseVector[Double] =>
         if (v.index.length == v.used) {
@@ -149,11 +150,11 @@ private[sparkts] object MatrixUtil {
   }
 
   /**
-   * Creates a breeze vector instance from a spark-mllib vector.
-   *
-   * @param sparkVector a spark-mllib vector
-   * @return a breeze vector instance
-   */
+    * Creates a breeze vector instance from a spark-mllib vector.
+    *
+    * @param sparkVector a spark-mllib vector
+    * @return a breeze vector instance
+    */
   private[sparkts] def toBreeze(sparkVector: SV): Vector[Double] = {
     sparkVector match {
       case v: SDV =>
@@ -187,9 +188,8 @@ private[sparkts] object MatrixUtil {
   private[sparkts] implicit def dvBreezeToSpark(breezeVector: DenseVector[Double]): SDV =
     fromBreeze(breezeVector).asInstanceOf[SDV]
 
-  private[sparkts] implicit def fvtovBreezeToSpark(f: (Vector[Double]) => Vector[Double])
-    : (SV) => SV = {
+  private[sparkts] implicit def fvtovBreezeToSpark(f: Vector[Double] => Vector[Double])
+  : SV => SV = {
     v: SV => f(v)
   }
-
 }

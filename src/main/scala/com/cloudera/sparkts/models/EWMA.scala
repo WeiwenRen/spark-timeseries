@@ -1,47 +1,49 @@
 /**
- * Copyright (c) 2015, Cloudera, Inc. All Rights Reserved.
- *
- * Cloudera, Inc. licenses this file to you under the Apache License,
- * Version 2.0 (the "License"). You may not use this file except in
- * compliance with the License. You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for
- * the specific language governing permissions and limitations under the
- * License.
- */
+  * Copyright (c) 2015, Cloudera, Inc. All Rights Reserved.
+  *
+  * Cloudera, Inc. licenses this file to you under the Apache License,
+  * Version 2.0 (the "License"). You may not use this file except in
+  * compliance with the License. You may obtain a copy of the License at
+  *
+  * http://www.apache.org/licenses/LICENSE-2.0
+  *
+  * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+  * CONDITIONS OF ANY KIND, either express or implied. See the License for
+  * the specific language governing permissions and limitations under the
+  * License.
+  */
 
 package com.cloudera.sparkts.models
 
-import com.cloudera.sparkts.MatrixUtil
 import org.apache.commons.math3.analysis.{MultivariateFunction, MultivariateVectorFunction}
 import org.apache.commons.math3.optim.nonlinear.scalar.gradient.NonLinearConjugateGradientOptimizer
-import org.apache.commons.math3.optim.nonlinear.scalar.{GoalType, ObjectiveFunction,
-  ObjectiveFunctionGradient}
+import org.apache.commons.math3.optim.nonlinear.scalar.{
+  GoalType, ObjectiveFunction,
+  ObjectiveFunctionGradient
+}
 import org.apache.commons.math3.optim.{InitialGuess, MaxEval, MaxIter, SimpleValueChecker}
 import org.apache.spark.mllib.linalg.{DenseVector, Vector}
 
 /**
- * Fits an Exponentially Weight Moving Average model (EWMA) (aka. Simple Exponential Smoothing) to
- * a time series. The model is defined as S_t = (1 - a) * X_t + a * S_{t - 1}, where a is the
- * smoothing parameter, X is the original series, and S is the smoothed series. For more
- * information, please see https://en.wikipedia.org/wiki/Exponential_smoothing.
- */
+  * Fits an Exponentially Weight Moving Average model (EWMA) (aka. Simple Exponential Smoothing) to
+  * a time series. The model is defined as S_t = (1 - a) * X_t + a * S_{t - 1}, where a is the
+  * smoothing parameter, X is the original series, and S is the smoothed series. For more
+  * information, please see https://en.wikipedia.org/wiki/Exponential_smoothing.
+  */
 object EWMA {
   /**
-   * Fits an EWMA model to a time series. Uses the first point in the time series as a starting
-   * value. Uses sum squared error as an objective function to optimize to find smoothing parameter
-   * The model for EWMA is recursively defined as S_t = (1 - a) * X_t + a * S_{t-1}, where
-   * a is the smoothing parameter, X is the original series, and S is the smoothed series
-   * Note that the optimization is performed as unbounded optimization, although in its formal
-   * definition the smoothing parameter is <= 1, which corresponds to an inequality bounded
-   * optimization. Given this, the resulting smoothing parameter should always be sanity checked
-   * https://en.wikipedia.org/wiki/Exponential_smoothing
-   * @param ts the time series to which we want to fit an EWMA model
-   * @return EWMA model
-   */
+    * Fits an EWMA model to a time series. Uses the first point in the time series as a starting
+    * value. Uses sum squared error as an objective function to optimize to find smoothing parameter
+    * The model for EWMA is recursively defined as S_t = (1 - a) * X_t + a * S_{t-1}, where
+    * a is the smoothing parameter, X is the original series, and S is the smoothed series
+    * Note that the optimization is performed as unbounded optimization, although in its formal
+    * definition the smoothing parameter is <= 1, which corresponds to an inequality bounded
+    * optimization. Given this, the resulting smoothing parameter should always be sanity checked
+    * https://en.wikipedia.org/wiki/Exponential_smoothing
+    *
+    * @param ts the time series to which we want to fit an EWMA model
+    * @return EWMA model
+    */
   def fitModel(ts: Vector): EWMAModel = {
     val optimizer = new NonLinearConjugateGradientOptimizer(
       NonLinearConjugateGradientOptimizer.Formula.FLETCHER_REEVES,
@@ -72,12 +74,13 @@ object EWMA {
 class EWMAModel(val smoothing: Double) extends TimeSeriesModel {
 
   /**
-   * Calculates the SSE for a given timeseries ts given the smoothing parameter of the current model
-   * The forecast for the observation at period t + 1 is the smoothed value at time t
-   * Source: http://people.duke.edu/~rnau/411avg.htm
-   * @param ts the time series to fit a EWMA model to
-   * @return Sum Squared Error
-   */
+    * Calculates the SSE for a given timeseries ts given the smoothing parameter of the current model
+    * The forecast for the observation at period t + 1 is the smoothed value at time t
+    * Source: http://people.duke.edu/~rnau/411avg.htm
+    *
+    * @param ts the time series to fit a EWMA model to
+    * @return Sum Squared Error
+    */
   private[sparkts] def sse(ts: Vector): Double = {
     val n = ts.size
     val smoothed = new DenseVector(Array.fill(n)(0.0))
@@ -96,9 +99,10 @@ class EWMAModel(val smoothing: Double) extends TimeSeriesModel {
   }
 
   /**
-   * Calculates the gradient of the SSE cost function for our EWMA model
-   * @return gradient
-   */
+    * Calculates the gradient of the SSE cost function for our EWMA model
+    *
+    * @return gradient
+    */
   private[sparkts] def gradient(ts: Vector): Double = {
     val n = ts.size
     val smoothed = new DenseVector(Array.fill(n)(0.0))

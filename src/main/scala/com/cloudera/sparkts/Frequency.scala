@@ -1,45 +1,46 @@
 /**
- * Copyright (c) 2015, Cloudera, Inc. All Rights Reserved.
- *
- * Cloudera, Inc. licenses this file to you under the Apache License,
- * Version 2.0 (the "License"). You may not use this file except in
- * compliance with the License. You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for
- * the specific language governing permissions and limitations under the
- * License.
- */
+  * Copyright (c) 2015, Cloudera, Inc. All Rights Reserved.
+  *
+  * Cloudera, Inc. licenses this file to you under the Apache License,
+  * Version 2.0 (the "License"). You may not use this file except in
+  * compliance with the License. You may obtain a copy of the License at
+  *
+  * http://www.apache.org/licenses/LICENSE-2.0
+  *
+  * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+  * CONDITIONS OF ANY KIND, either express or implied. See the License for
+  * the specific language governing permissions and limitations under the
+  * License.
+  */
 
 package com.cloudera.sparkts
 
-import com.cloudera.sparkts.DateTimeIndex._
 import java.time._
 import java.time.temporal._
+
+import com.cloudera.sparkts.DateTimeIndex._
 
 class BusinessDayRichInt(n: Int, firstDayOfWeek: Int = DayOfWeek.MONDAY.getValue) {
   def businessDays: BusinessDayFrequency = new BusinessDayFrequency(n, firstDayOfWeek)
 }
 
 /**
- * A frequency for a uniform index.
- */
+  * A frequency for a uniform index.
+  */
 trait Frequency extends Serializable {
   /**
-   * Advances the given DateTime by this frequency n times.
-   */
+    * Advances the given DateTime by this frequency n times.
+    */
   def advance(dt: ZonedDateTime, n: Int): ZonedDateTime
 
   /**
-   * The number of times this frequency occurs between the two DateTimes, rounded down.
-   */
+    * The number of times this frequency occurs between the two DateTimes, rounded down.
+    */
   def difference(dt1: ZonedDateTime, dt2: ZonedDateTime): Int
 }
 
 class DurationFrequency(val duration: Duration) extends Frequency {
-  val durationNanos = duration.getSeconds * 1000000000L + duration.getNano
+  val durationNanos: Long = duration.getSeconds * 1000000000L + duration.getNano
 
   def advance(dt: ZonedDateTime, n: Int): ZonedDateTime = dt.plus(duration.multipliedBy(n))
 
@@ -56,9 +57,8 @@ class DurationFrequency(val duration: Duration) extends Frequency {
     }
   }
 
-  override def hashCode(): Int = {
+  override def hashCode(): Int =
     duration.hashCode()
-  }
 }
 
 abstract class PeriodFrequency(val period: Period) extends Frequency {
@@ -71,9 +71,8 @@ abstract class PeriodFrequency(val period: Period) extends Frequency {
     }
   }
 
-  override def hashCode(): Int = {
+  override def hashCode(): Int =
     period.hashCode()
-  }
 }
 
 class MillisecondFrequency(val ms: Int)
@@ -140,13 +139,11 @@ class SecondFrequency(val seconds: Int)
   override def toString: String = s"seconds $seconds"
 }
 
-class BusinessDayFrequency(
-  val days: Int,
-  val firstDayOfWeek: Int = DayOfWeek.MONDAY.getValue)
-  extends Frequency {
+class BusinessDayFrequency(val days: Int,
+                           val firstDayOfWeek: Int = DayOfWeek.MONDAY.getValue) extends Frequency {
   /**
-   * Advances the given DateTime by (n * days) business days.
-   */
+    * Advances the given DateTime by (n * days) business days.
+    */
   def advance(dt: ZonedDateTime, n: Int): ZonedDateTime = {
     val dayOfWeek = dt.getDayOfWeek
     val alignedDayOfWeek = rebaseDayOfWeek(dayOfWeek.getValue, firstDayOfWeek)
@@ -171,7 +168,7 @@ class BusinessDayFrequency(
       throw new IllegalArgumentException(s"$dt1 is not a business day")
     }
     val standardWeekendDays = (daysBetween / 7) * 2
-    val remaining  = daysBetween % 7
+    val remaining = daysBetween % 7
     val extraWeekendDays = if (alignedDayOfWeek1 + remaining > 5) 2 else 0
     ((daysBetween - standardWeekendDays - extraWeekendDays) / days).toInt
   }

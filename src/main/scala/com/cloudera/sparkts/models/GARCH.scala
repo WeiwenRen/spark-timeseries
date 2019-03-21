@@ -1,35 +1,34 @@
 /**
- * Copyright (c) 2015, Cloudera, Inc. All Rights Reserved.
- *
- * Cloudera, Inc. licenses this file to you under the Apache License,
- * Version 2.0 (the "License"). You may not use this file except in
- * compliance with the License. You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for
- * the specific language governing permissions and limitations under the
- * License.
- */
+  * Copyright (c) 2015, Cloudera, Inc. All Rights Reserved.
+  *
+  * Cloudera, Inc. licenses this file to you under the Apache License,
+  * Version 2.0 (the "License"). You may not use this file except in
+  * compliance with the License. You may obtain a copy of the License at
+  *
+  * http://www.apache.org/licenses/LICENSE-2.0
+  *
+  * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+  * CONDITIONS OF ANY KIND, either express or implied. See the License for
+  * the specific language governing permissions and limitations under the
+  * License.
+  */
 
 package com.cloudera.sparkts.models
 
 import org.apache.commons.math3.analysis.{MultivariateFunction, MultivariateVectorFunction}
 import org.apache.commons.math3.optim.nonlinear.scalar.gradient.NonLinearConjugateGradientOptimizer
-import org.apache.commons.math3.optim.nonlinear.scalar.{ObjectiveFunction,
-  ObjectiveFunctionGradient}
+import org.apache.commons.math3.optim.nonlinear.scalar.{ObjectiveFunction, ObjectiveFunctionGradient}
 import org.apache.commons.math3.optim.{InitialGuess, MaxEval, MaxIter, SimpleValueChecker}
 import org.apache.commons.math3.random.RandomGenerator
 import org.apache.spark.mllib.linalg.{DenseVector, Vector, Vectors}
 
 object GARCH {
   /**
-   * Fits a GARCH(1, 1) model to the given time series.
-   *
-   * @param ts The time series to fit the model to.
-   * @return The model.
-   */
+    * Fits a GARCH(1, 1) model to the given time series.
+    *
+    * @param ts The time series to fit the model to.
+    * @return The model.
+    */
   def fitModel(ts: Vector): GARCHModel = {
     val optimizer = new NonLinearConjugateGradientOptimizer(
       NonLinearConjugateGradientOptimizer.Formula.FLETCHER_REEVES,
@@ -55,11 +54,11 @@ object GARCH {
 
 object ARGARCH {
   /**
-   * Fits an AR(1) + GARCH(1, 1) model to the given time series.
-   *
-   * @param ts The time series to fit the model to.
-   * @return The model.
-   */
+    * Fits an AR(1) + GARCH(1, 1) model to the given time series.
+    *
+    * @param ts The time series to fit the model to.
+    * @return The model.
+    */
   def fitModel(ts: Vector): ARGARCHModel = {
     val arModel = Autoregression.fitModel(ts)
     val residuals = arModel.removeTimeDependentEffects(ts, Vectors.zeros(ts.size))
@@ -69,30 +68,30 @@ object ARGARCH {
   }
 }
 
-class GARCHModel(
-    val omega: Double,
-    val alpha: Double,
-    val beta: Double) extends TimeSeriesModel {
+class GARCHModel(val omega: Double,
+                 val alpha: Double,
+                 val beta: Double) extends TimeSeriesModel {
 
   /**
-   * Returns the log likelihood of the parameters on the given time series.
-   *
-   * Based on http://www.unc.edu/~jbhill/Bollerslev_GARCH_1986.pdf
-   */
+    * Returns the log likelihood of the parameters on the given time series.
+    *
+    * Based on http://www.unc.edu/~jbhill/Bollerslev_GARCH_1986.pdf
+    */
   def logLikelihood(ts: Vector): Double = {
     var sum = 0.0
     iterateWithHAndEta(ts) { (i, h, eta, prevH, prevEta) =>
-      sum += -.5 * math.log(h) - .5 * eta * eta / h
+      sum += -.5 * math.log(h) -.5 * eta * eta / h
     }
     sum + -.5 * math.log(2 * math.Pi) * (ts.size - 1)
   }
 
   /**
-   * Find the gradient of the log likelihood with respect to the given time series.
-   *
-   * Based on http://www.unc.edu/~jbhill/Bollerslev_GARCH_1986.pdf
-   * @return an 3-element array containing the gradient for the alpha, beta, and omega parameters.
-   */
+    * Find the gradient of the log likelihood with respect to the given time series.
+    *
+    * Based on http://www.unc.edu/~jbhill/Bollerslev_GARCH_1986.pdf
+    *
+    * @return an 3-element array containing the gradient for the alpha, beta, and omega parameters.
+    */
   private[sparkts] def gradient(ts: Vector): Array[Double] = {
     var omegaGradient = 0.0
     var alphaGradient = 0.0
@@ -167,7 +166,7 @@ class GARCHModel(
     variances(0) = omega / (1 - alpha - beta)
     var eta = math.sqrt(variances(0)) * rand.nextGaussian()
     for (i <- 1 until n) {
-      variances(i) = omega + beta * variances(i-1) + alpha * eta * eta
+      variances(i) = omega + beta * variances(i - 1) + alpha * eta * eta
       eta = math.sqrt(variances(i)) * rand.nextGaussian()
       ts(i) = eta
     }
@@ -176,32 +175,30 @@ class GARCHModel(
   }
 
   /**
-   * Samples a random time series of a given length with the properties of the model.
-   *
-   * @param n The length of the time series to sample.
-   * @param rand The random generator used to generate the observations.
-   * @return The samples time series.
-   */
+    * Samples a random time series of a given length with the properties of the model.
+    *
+    * @param n    The length of the time series to sample.
+    * @param rand The random generator used to generate the observations.
+    * @return The samples time series.
+    */
   def sample(n: Int, rand: RandomGenerator): Array[Double] = sampleWithVariances(n, rand)._1
 }
 
 /**
- * A GARCH(1, 1) + AR(1) model, where
- *   y(i) = c + phi * y(i - 1) + eta(i),
- * and h(i), the variance of eta(i), is given by
- *   h(i) = omega + alpha * eta(i) ** 2 + beta * h(i - 1) ** 2
- *
- * @param c The constant term.
- * @param phi The autoregressive term.
- * @param omega The constant term in the variance.
- */
-class ARGARCHModel(
-    val c: Double,
-    val phi: Double,
-    val omega: Double,
-    val alpha: Double,
-    val beta: Double) extends TimeSeriesModel {
-
+  * A GARCH(1, 1) + AR(1) model, where
+  * y(i) = c + phi * y(i - 1) + eta(i),
+  * and h(i), the variance of eta(i), is given by
+  * h(i) = omega + alpha * eta(i) ** 2 + beta * h(i - 1) ** 2
+  *
+  * @param c     The constant term.
+  * @param phi   The autoregressive term.
+  * @param omega The constant term in the variance.
+  */
+class ARGARCHModel(val c: Double,
+                   val phi: Double,
+                   val omega: Double,
+                   val alpha: Double,
+                   val beta: Double) extends TimeSeriesModel {
   override def removeTimeDependentEffects(ts: Vector, dest: Vector): Vector = {
     var prevEta = ts(0) - c
     var prevVariance = omega / (1.0 - alpha - beta)
@@ -241,7 +238,7 @@ class ARGARCHModel(
     variances(0) = omega / (1 - alpha - beta)
     var eta = math.sqrt(variances(0)) * rand.nextGaussian()
     for (i <- 1 until n) {
-      variances(i) = omega + beta * variances(i-1) + alpha * eta * eta
+      variances(i) = omega + beta * variances(i - 1) + alpha * eta * eta
       eta = math.sqrt(variances(i)) * rand.nextGaussian()
       ts(i) = c + phi * ts(i - 1) + eta
     }
@@ -250,25 +247,24 @@ class ARGARCHModel(
   }
 
   /**
-   * Samples a random time series of a given length with the properties of the model.
-   *
-   * @param n The length of the time series to sample.
-   * @param rand The random generator used to generate the observations.
-   * @return The samples time series.
-   */
+    * Samples a random time series of a given length with the properties of the model.
+    *
+    * @param n    The length of the time series to sample.
+    * @param rand The random generator used to generate the observations.
+    * @return The samples time series.
+    */
   def sample(n: Int, rand: RandomGenerator): Array[Double] = sampleWithVariances(n, rand)._1
 }
 
-class EGARCHModel(
-    val omega: Double,
-    val alpha: Double,
-    val beta: Double) extends TimeSeriesModel {
+class EGARCHModel(val omega: Double,
+                  val alpha: Double,
+                  val beta: Double) extends TimeSeriesModel {
 
   /**
-   * Returns the log likelihood of the parameters on the given time series.
-   *
-   * Based on http://swopec.hhs.se/hastef/papers/hastef0564.pdf
-   */
+    * Returns the log likelihood of the parameters on the given time series.
+    *
+    * Based on http://swopec.hhs.se/hastef/papers/hastef0564.pdf
+    */
   def logLikelihood(ts: Array[Double]): Double = {
     throw new UnsupportedOperationException()
   }

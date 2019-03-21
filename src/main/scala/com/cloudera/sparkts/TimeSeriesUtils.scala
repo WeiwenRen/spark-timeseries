@@ -1,29 +1,29 @@
 /**
- * Copyright (c) 2015, Cloudera, Inc. All Rights Reserved.
- *
- * Cloudera, Inc. licenses this file to you under the Apache License,
- * Version 2.0 (the "License"). You may not use this file except in
- * compliance with the License. You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for
- * the specific language governing permissions and limitations under the
- * License.
- */
+  * Copyright (c) 2015, Cloudera, Inc. All Rights Reserved.
+  *
+  * Cloudera, Inc. licenses this file to you under the Apache License,
+  * Version 2.0 (the "License"). You may not use this file except in
+  * compliance with the License. You may obtain a copy of the License at
+  *
+  * http://www.apache.org/licenses/LICENSE-2.0
+  *
+  * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+  * CONDITIONS OF ANY KIND, either express or implied. See the License for
+  * the specific language governing permissions and limitations under the
+  * License.
+  */
 
 package com.cloudera.sparkts
 
-import scala.collection.mutable.ArrayBuffer
+import java.time._
 
 import breeze.linalg._
 
-import java.time._
+import scala.collection.mutable.ArrayBuffer
 
 /**
- * Internal utilities for dealing with 1-D time series.
- */
+  * Internal utilities for dealing with 1-D time series.
+  */
 private[sparkts] object TimeSeriesUtils {
   type Rebaser = Vector[Double] => Vector[Double]
 
@@ -43,8 +43,8 @@ private[sparkts] object TimeSeriesUtils {
     unioned
   }
 
-  def union(indexes: Array[UniformDateTimeIndex], series: Array[Array[Double]])
-    : (UniformDateTimeIndex, Array[Double]) = {
+  def union(indexes: Array[UniformDateTimeIndex],
+            series: Array[Array[Double]]): (UniformDateTimeIndex, Array[Double]) = {
     val freq = indexes.head.frequency
     if (!indexes.forall(_.frequency == freq)) {
       throw new IllegalArgumentException("Series must have conformed frequencies to be unioned")
@@ -54,31 +54,28 @@ private[sparkts] object TimeSeriesUtils {
   }
 
   /**
-   * Accepts a series of values indexed by the given source index and moves it to conform to a
-   * target index. The target index need not fit inside the source index - non-overlapping regions
-   * will be filled with NaNs or the given default value.
-   *
-   * The source index must have the same frequency as the target index.
-   */
-  def rebase(
-      sourceIndex: DateTimeIndex,
-      targetIndex: DateTimeIndex,
-      vec: Vector[Double],
-      defaultValue: Double): Vector[Double] = {
+    * Accepts a series of values indexed by the given source index and moves it to conform to a
+    * target index. The target index need not fit inside the source index - non-overlapping regions
+    * will be filled with NaNs or the given default value.
+    *
+    * The source index must have the same frequency as the target index.
+    */
+  def rebase(sourceIndex: DateTimeIndex,
+             targetIndex: DateTimeIndex,
+             vec: Vector[Double],
+             defaultValue: Double): Vector[Double] =
     rebaser(sourceIndex, targetIndex, defaultValue)(vec)
-  }
 
   /**
-   * Returns a function that accepts a series of values indexed by the given source index and moves
-   * it to conform to a target index. The target index need not fit inside the source index -
-   * non-overlapping regions will be filled with NaNs or the given default value.
-   *
-   * The source index must have the same frequency as the target index.
-   */
-  def rebaser(
-      sourceIndex: DateTimeIndex,
-      targetIndex: DateTimeIndex,
-      defaultValue: Double): Rebaser = {
+    * Returns a function that accepts a series of values indexed by the given source index and moves
+    * it to conform to a target index. The target index need not fit inside the source index -
+    * non-overlapping regions will be filled with NaNs or the given default value.
+    *
+    * The source index must have the same frequency as the target index.
+    */
+  def rebaser(sourceIndex: DateTimeIndex,
+              targetIndex: DateTimeIndex,
+              defaultValue: Double): Rebaser = {
     targetIndex match {
       case targetDTI: UniformDateTimeIndex =>
         sourceIndex match {
@@ -102,12 +99,11 @@ private[sparkts] object TimeSeriesUtils {
   }
 
   /**
-   * Implementation for rebase when source index is uniform.
-   */
-  private def rebaserWithUniformSource(
-      sourceIndex: UniformDateTimeIndex,
-      targetIndex: UniformDateTimeIndex,
-      defaultValue: Double): Rebaser = {
+    * Implementation for rebase when source index is uniform.
+    */
+  private def rebaserWithUniformSource(sourceIndex: UniformDateTimeIndex,
+                                       targetIndex: UniformDateTimeIndex,
+                                       defaultValue: Double): Rebaser = {
     val startLoc = sourceIndex.frequency.difference(sourceIndex.first, targetIndex.first)
     val endLoc = sourceIndex.frequency.difference(sourceIndex.first, targetIndex.last) + 1
 
@@ -118,7 +114,9 @@ private[sparkts] object TimeSeriesUtils {
       if (startLoc >= 0 && endLoc <= vec.length) {
         vec(startLoc until endLoc)
       } else {
-        val resultVec = DenseVector.fill(endLoc - startLoc) { defaultValue }
+        val resultVec = DenseVector.fill(endLoc - startLoc) {
+          defaultValue
+        }
         val safeEndLoc = math.min(endLoc, vec.length)
         val resultEndLoc = resultStartLoc + (safeEndLoc - safeStartLoc)
         resultVec(resultStartLoc until resultEndLoc) := vec(safeStartLoc until safeEndLoc)
@@ -128,12 +126,11 @@ private[sparkts] object TimeSeriesUtils {
   }
 
   /**
-   * Implementation for rebase when source index is irregular.
-   */
-  private def rebaserWithIrregularSource(
-      sourceIndex: IrregularDateTimeIndex,
-      targetIndex: UniformDateTimeIndex,
-      defaultValue: Double): Rebaser = {
+    * Implementation for rebase when source index is irregular.
+    */
+  private def rebaserWithIrregularSource(sourceIndex: IrregularDateTimeIndex,
+                                         targetIndex: UniformDateTimeIndex,
+                                         defaultValue: Double): Rebaser = {
     val startLoc = -targetIndex.locAtDateTime(sourceIndex.first)
     val startLocInSourceVec = math.max(0, startLoc)
     val dtsRelevant: Iterator[Long] = sourceIndex.instants.iterator.drop(startLocInSourceVec)
@@ -159,10 +156,9 @@ private[sparkts] object TimeSeriesUtils {
     }
   }
 
-  private def rebaserIrregularSourceIrregularTarget(
-      sourceIndex: IrregularDateTimeIndex,
-      targetIndex: IrregularDateTimeIndex,
-      defaultValue: Double): Rebaser = {
+  private def rebaserIrregularSourceIrregularTarget(sourceIndex: IrregularDateTimeIndex,
+                                                    targetIndex: IrregularDateTimeIndex,
+                                                    defaultValue: Double): Rebaser = {
     // indexMapping(i) = j means that resultArr(i) should be filled with the value from vec(j)
     val indexMapping = new Array[Int](targetIndex.size)
 
@@ -186,27 +182,26 @@ private[sparkts] object TimeSeriesUtils {
   }
 
   /**
-   * Note: time complexity of this method depends on the type of the source index
-   * , more specifically on the time complexity of the locAtDateTime method of the
-   * source index. If n and m are the lengths of the target and source indices
-   * respectively, this method takes O(n.f(m)) where f(m) is the complexity of
-   * locAtDateTime method of the source index.
-   *
-   * Source     Complexity
-   * uniform    O(n)
-   * irregular  O(n.log(m))
-   * hybrid     O(n(log(p) + f(q))); where
-   *            p: number of indices
-   *            q: length of sub index containing the search query
-   *
-   * more efficient implementations could achieve O(n)
-   */
-  def rebaserGeneric(
-      sourceIndex: DateTimeIndex,
-      targetIndex: DateTimeIndex,
-      defaultValue: Double): Rebaser = {
+    * Note: time complexity of this method depends on the type of the source index
+    * , more specifically on the time complexity of the locAtDateTime method of the
+    * source index. If n and m are the lengths of the target and source indices
+    * respectively, this method takes O(n.f(m)) where f(m) is the complexity of
+    * locAtDateTime method of the source index.
+    *
+    * Source     Complexity
+    * uniform    O(n)
+    * irregular  O(n.log(m))
+    * hybrid     O(n(log(p) + f(q))); where
+    * p: number of indices
+    * q: length of sub index containing the search query
+    *
+    * more efficient implementations could achieve O(n)
+    */
+  def rebaserGeneric(sourceIndex: DateTimeIndex,
+                     targetIndex: DateTimeIndex,
+                     defaultValue: Double): Rebaser = {
     // indexMapping(i) = j means that resultArr(i) should be filled with the value from vec(j)
-    val indexMapping = targetIndex.zonedDateTimeIterator.map(sourceIndex.locAtDateTime).toArray
+    val indexMapping = targetIndex.zonedDateTimeIterator().map(sourceIndex.locAtDateTime).toArray
     indexMappingRebaser(indexMapping, defaultValue)
   }
 
@@ -220,8 +215,8 @@ private[sparkts] object TimeSeriesUtils {
     }
   }
 
-  def samplesToTimeSeries(samples: Iterator[(ZonedDateTime, Double)], frequency: Frequency)
-    : (UniformDateTimeIndex, DenseVector[Double]) = {
+  def samplesToTimeSeries(samples: Iterator[(ZonedDateTime, Double)],
+                          frequency: Frequency): (UniformDateTimeIndex, DenseVector[Double]) = {
     val arr = new ArrayBuffer[Double]()
     val iter = iterateWithUniformFrequency(samples, frequency)
     val (firstDT, firstValue) = iter.next()
@@ -233,8 +228,8 @@ private[sparkts] object TimeSeriesUtils {
     (index, new DenseVector[Double](arr.toArray))
   }
 
-  def samplesToTimeSeries(samples: Iterator[(ZonedDateTime, Double)], index: UniformDateTimeIndex)
-    : (DenseVector[Double]) = {
+  def samplesToTimeSeries(samples: Iterator[(ZonedDateTime, Double)],
+                          index: UniformDateTimeIndex): DenseVector[Double] = {
     val arr = new Array[Double](index.size)
     val iter = iterateWithUniformFrequency(samples, index.frequency)
     var i = 0
@@ -246,18 +241,18 @@ private[sparkts] object TimeSeriesUtils {
   }
 
   /**
-   * Takes an iterator over time samples not necessarily at uniform intervals and returns an
-   * iterator of values at uniform intervals, with NaNs (or a given default value) placed where
-   * there is no data.
-   *
-   * The input samples must be aligned on the given frequency.
-   */
+    * Takes an iterator over time samples not necessarily at uniform intervals and returns an
+    * iterator of values at uniform intervals, with NaNs (or a given default value) placed where
+    * there is no data.
+    *
+    * The input samples must be aligned on the given frequency.
+    */
   def iterateWithUniformFrequency(samples: Iterator[(ZonedDateTime, Double)], frequency: Frequency,
-      defaultValue: Double = Double.NaN): Iterator[(ZonedDateTime, Double)] = {
+                                  defaultValue: Double = Double.NaN): Iterator[(ZonedDateTime, Double)] = {
     // TODO: throw exceptions for points with non-aligned frequencies
     new Iterator[(ZonedDateTime, Double)]() {
-      var curTup = if (samples.hasNext) samples.next() else null
-      var curUniformDT = if (curTup != null) curTup._1 else null
+      var curTup: (ZonedDateTime, Double) = if (samples.hasNext) samples.next() else null
+      var curUniformDT: ZonedDateTime = if (curTup != null) curTup._1 else null
 
       def hasNext: Boolean = curTup != null
 
@@ -277,9 +272,8 @@ private[sparkts] object TimeSeriesUtils {
     }
   }
 
-  def minMaxDateTimes(
-      index: UniformDateTimeIndex,
-      series: Array[Double]): (ZonedDateTime, ZonedDateTime) = {
+  def minMaxDateTimes(index: UniformDateTimeIndex,
+                      series: Array[Double]): (ZonedDateTime, ZonedDateTime) = {
     var min = Double.MaxValue
     var minDt: ZonedDateTime = null
     var max = Double.MinValue
@@ -305,7 +299,7 @@ private[sparkts] object TimeSeriesUtils {
   }
 
   def zonedDateTimeToLong(dt: ZonedDateTime): Long = {
-    val secondsInNano = dt.toInstant().getEpochSecond() * 1000000000L
-    secondsInNano + dt.getNano()
+    val secondsInNano = dt.toInstant.getEpochSecond * 1000000000L
+    secondsInNano + dt.getNano
   }
 }

@@ -1,17 +1,17 @@
 /**
- * Copyright (c) 2015, Cloudera, Inc. All Rights Reserved.
- *
- * Cloudera, Inc. licenses this file to you under the Apache License,
- * Version 2.0 (the "License"). You may not use this file except in
- * compliance with the License. You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for
- * the specific language governing permissions and limitations under the
- * License.
- */
+  * Copyright (c) 2015, Cloudera, Inc. All Rights Reserved.
+  *
+  * Cloudera, Inc. licenses this file to you under the Apache License,
+  * Version 2.0 (the "License"). You may not use this file except in
+  * compliance with the License. You may obtain a copy of the License at
+  *
+  * http://www.apache.org/licenses/LICENSE-2.0
+  *
+  * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+  * CONDITIONS OF ANY KIND, either express or implied. See the License for
+  * the specific language governing permissions and limitations under the
+  * License.
+  */
 
 package com.cloudera.sparkts.models
 
@@ -23,18 +23,19 @@ import org.apache.spark.mllib.linalg.{DenseVector, Vector}
 
 object Autoregression {
   /**
-   * Fits an AR(1) model to the given time series
-   */
+    * Fits an AR(1) model to the given time series
+    */
   def fitModel(ts: Vector): ARModel = fitModel(ts, 1)
 
   /**
-   * Fits an AR(n) model to a given time series
-   * @param ts Data to fit
-   * @param maxLag The autoregressive factor, terms t - 1 through t - maxLag are included
-   * @param noIntercept A boolean to indicate if the regression should be run without an intercept,
-   *                    the default is set to false, so that the OLS includes an intercept term
-   * @return AR(n) model
-   */
+    * Fits an AR(n) model to a given time series
+    *
+    * @param ts          Data to fit
+    * @param maxLag      The autoregressive factor, terms t - 1 through t - maxLag are included
+    * @param noIntercept A boolean to indicate if the regression should be run without an intercept,
+    *                    the default is set to false, so that the OLS includes an intercept term
+    * @return AR(n) model
+    */
   def fitModel(ts: Vector, maxLag: Int, noIntercept: Boolean = false): ARModel = {
     // This is loosely based off of the implementation in statsmodels:
     // https://github.com/statsmodels/statsmodels/blob/master/statsmodels/tsa/ar_model.py
@@ -57,9 +58,8 @@ class ARModel(val c: Double, val coefficients: Array[Double]) extends TimeSeries
 
   def this(c: Double, coef: Double) = this(c, Array(coef))
 
-  def removeTimeDependentEffects(
-      ts: Vector,
-      destTs: Vector = null): Vector = {
+  def removeTimeDependentEffects(ts: Vector,
+                                 destTs: Vector = null): Vector = {
     val dest = if (destTs == null) new Array[Double](ts.size) else destTs.toArray
     var i = 0
     while (i < ts.size) {

@@ -1,25 +1,24 @@
 /**
- * Copyright (c) 2015, Cloudera, Inc. All Rights Reserved.
- *
- * Cloudera, Inc. licenses this file to you under the Apache License,
- * Version 2.0 (the "License"). You may not use this file except in
- * compliance with the License. You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for
- * the specific language governing permissions and limitations under the
- * License.
- */
+  * Copyright (c) 2015, Cloudera, Inc. All Rights Reserved.
+  *
+  * Cloudera, Inc. licenses this file to you under the Apache License,
+  * Version 2.0 (the "License"). You may not use this file except in
+  * compliance with the License. You may obtain a copy of the License at
+  *
+  * http://www.apache.org/licenses/LICENSE-2.0
+  *
+  * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+  * CONDITIONS OF ANY KIND, either express or implied. See the License for
+  * the specific language governing permissions and limitations under the
+  * License.
+  */
 
 package com.cloudera.sparkts
 
-import org.apache.spark.mllib.linalg._
 import breeze.plot._
 import com.cloudera.sparkts.models.Autoregression
-
 import org.apache.commons.math3.distribution.NormalDistribution
+import org.apache.spark.mllib.linalg._
 
 object EasyPlot {
   def ezplot(vec: Vector, style: Char): Figure = {
@@ -38,7 +37,7 @@ object EasyPlot {
     f
   }
 
-    def ezplot(arr: Array[Double]): Figure = ezplot(arr, '-')
+  def ezplot(arr: Array[Double]): Figure = ezplot(arr, '-')
 
   def ezplot(vecs: Seq[Vector], style: Char): Figure = {
     val f = Figure()
@@ -53,11 +52,12 @@ object EasyPlot {
   def ezplot(vecs: Seq[Vector]): Figure = ezplot(vecs, '-')
 
   /**
-   * Autocorrelation function plot
-   * @param data array of data to analyze
-   * @param maxLag maximum lag for autocorrelation
-   * @param conf confidence bounds to display
-   */
+    * Autocorrelation function plot
+    *
+    * @param data   array of data to analyze
+    * @param maxLag maximum lag for autocorrelation
+    * @param conf   confidence bounds to display
+    */
   def acfPlot(data: Array[Double], maxLag: Int, conf: Double = 0.95): Figure = {
     // calculate correlations and confidence bound
     val autoCorrs = UnivariateTimeSeries.autocorr(data, maxLag)
@@ -74,11 +74,12 @@ object EasyPlot {
   }
 
   /**
-   * Partial autocorrelation function plot
-   * @param data array of data to analyze
-   * @param maxLag maximum lag for partial autocorrelation function
-   * @param conf confidence bounds to display
-   */
+    * Partial autocorrelation function plot
+    *
+    * @param data   array of data to analyze
+    * @param maxLag maximum lag for partial autocorrelation function
+    * @param conf   confidence bounds to display
+    */
   def pacfPlot(data: Array[Double], maxLag: Int, conf: Double = 0.95): Figure = {
     // create AR(maxLag) model, retrieve coefficients and calculate confidence bound
     val model = Autoregression.fitModel(new DenseVector(data), maxLag)

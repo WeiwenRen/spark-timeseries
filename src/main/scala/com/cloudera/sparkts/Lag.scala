@@ -1,17 +1,17 @@
 /**
- * Copyright (c) 2015, Cloudera, Inc. All Rights Reserved.
- *
- * Cloudera, Inc. licenses this file to you under the Apache License,
- * Version 2.0 (the "License"). You may not use this file except in
- * compliance with the License. You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for
- * the specific language governing permissions and limitations under the
- * License.
- */
+  * Copyright (c) 2015, Cloudera, Inc. All Rights Reserved.
+  *
+  * Cloudera, Inc. licenses this file to you under the Apache License,
+  * Version 2.0 (the "License"). You may not use this file except in
+  * compliance with the License. You may obtain a copy of the License at
+  *
+  * http://www.apache.org/licenses/LICENSE-2.0
+  *
+  * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+  * CONDITIONS OF ANY KIND, either express or implied. See the License for
+  * the specific language governing permissions and limitations under the
+  * License.
+  */
 
 package com.cloudera.sparkts
 
@@ -19,19 +19,18 @@ import org.apache.spark.mllib.linalg._
 
 private[sparkts] object Lag {
   /**
-   * Makes a lag matrix from the given time series with the given lag, trimming both rows and
-   * columns so that every element in the matrix is full.
-   */
-  def lagMatTrimBoth(x: Array[Double], maxLag: Int): Array[Array[Double]] = {
-    lagMatTrimBoth(x, maxLag, false)
-  }
+    * Makes a lag matrix from the given time series with the given lag, trimming both rows and
+    * columns so that every element in the matrix is full.
+    */
+  def lagMatTrimBoth(x: Array[Double], maxLag: Int): Array[Array[Double]] =
+    lagMatTrimBoth(x, maxLag, includeOriginal = false)
 
   /**
-   * Makes a lag matrix from the given time series with the given lag, trimming both rows and
-   * columns so that every element in the matrix is full.
-   */
+    * Makes a lag matrix from the given time series with the given lag, trimming both rows and
+    * columns so that every element in the matrix is full.
+    */
   def lagMatTrimBoth(x: Array[Double], maxLag: Int, includeOriginal: Boolean)
-    : Array[Array[Double]] = {
+  : Array[Array[Double]] = {
     val numObservations = x.length
     val numRows = numObservations - maxLag
     val numCols = maxLag + (if (includeOriginal) 1 else 0)
@@ -48,17 +47,17 @@ private[sparkts] object Lag {
   }
 
   /**
-   * Makes a lag matrix from the given time series with the given lag, trimming both rows and
-   * columns so that every element in the matrix is full.
-   */
+    * Makes a lag matrix from the given time series with the given lag, trimming both rows and
+    * columns so that every element in the matrix is full.
+    */
   def lagMatTrimBoth(x: Vector, maxLag: Int): Matrix = {
-    lagMatTrimBoth(x, maxLag, false)
+    lagMatTrimBoth(x, maxLag, includeOriginal = false)
   }
 
   /**
-   * Makes a lag matrix from the given time series with the given lag, trimming both rows and
-   * columns so that every element in the matrix is full.
-   */
+    * Makes a lag matrix from the given time series with the given lag, trimming both rows and
+    * columns so that every element in the matrix is full.
+    */
   def lagMatTrimBoth(x: Vector, maxLag: Int, includeOriginal: Boolean): Matrix = {
     val numObservations = x.size
     val numRows = numObservations - maxLag
@@ -70,20 +69,19 @@ private[sparkts] object Lag {
   }
 
   /**
-   * @param x Vector to be lagged.
-   * @param outputMat Matrix to place the lagged vector into, as a column.
-   * @param numLags The number of times to lag the vector.  E.g. if this is 2, the output matrix
-   *                will include one column that is the vector lagged by 1, and another column to
-   *                the right that is the vector lagged by 2.
-   * @param includeOriginal Whether to place the original time series into the matrix as well.
-   * @param colOffset The offset to start placing columns in the output mat.
-   */
-  def lagMatTrimBoth(
-      x: Vector,
-      outputMat: DenseMatrix,
-      numLags: Int,
-      includeOriginal: Boolean,
-      colOffset: Int): Unit = {
+    * @param x               Vector to be lagged.
+    * @param outputMat       Matrix to place the lagged vector into, as a column.
+    * @param numLags         The number of times to lag the vector.  E.g. if this is 2, the output matrix
+    *                        will include one column that is the vector lagged by 1, and another column to
+    *                        the right that is the vector lagged by 2.
+    * @param includeOriginal Whether to place the original time series into the matrix as well.
+    * @param colOffset       The offset to start placing columns in the output mat.
+    */
+  def lagMatTrimBoth(x: Vector,
+                     outputMat: DenseMatrix,
+                     numLags: Int,
+                     includeOriginal: Boolean,
+                     colOffset: Int): Unit = {
     val numRows = outputMat.numRows
     val numTruncatedRows = x.size - numRows
 
@@ -99,15 +97,14 @@ private[sparkts] object Lag {
   }
 
   /**
-   * Creates a lagged matrix from a current matrix (represented in row-array form). Lags each column
-   * the appropriate amount of times and then concatenates the columns.
-   * So given a matrix [a b c], where a/b/c are column vectors, and calling with lag of 2, becomes a
-   * matrix of the form [a_-1 a_-2 b_-1 b_-2 c_-1 c_-2]
-   */
-  def lagMatTrimBoth(
-      x: Array[Array[Double]],
-      maxLag: Int,
-      includeOriginal: Boolean): Array[Array[Double]] = {
+    * Creates a lagged matrix from a current matrix (represented in row-array form). Lags each column
+    * the appropriate amount of times and then concatenates the columns.
+    * So given a matrix [a b c], where a/b/c are column vectors, and calling with lag of 2, becomes a
+    * matrix of the form [a_-1 a_-2 b_-1 b_-2 c_-1 c_-2]
+    */
+  def lagMatTrimBoth(x: Array[Array[Double]],
+                     maxLag: Int,
+                     includeOriginal: Boolean): Array[Array[Double]] = {
     val xt = x.transpose
     // one matrix per column, consisting of all its lags
     val matrices = for (col <- xt) yield {
@@ -118,13 +115,13 @@ private[sparkts] object Lag {
   }
 
   /**
-   * Creates a lagged matrix from a current matrix (represented in row-array form). Lags each column
-   * the appropriate amount of times and then concatenates the columns.
-   * So given a matrix [a b c], where a/b/c are column vectors, and calling with lag of 2, becomes a
-   * matrix of the form [a_-1 a_-2 b_-1 b_-2 c_-1 c_-2]
-   * The original time series is not included in the matrix.
-   */
+    * Creates a lagged matrix from a current matrix (represented in row-array form). Lags each column
+    * the appropriate amount of times and then concatenates the columns.
+    * So given a matrix [a b c], where a/b/c are column vectors, and calling with lag of 2, becomes a
+    * matrix of the form [a_-1 a_-2 b_-1 b_-2 c_-1 c_-2]
+    * The original time series is not included in the matrix.
+    */
   def lagMatTrimBoth(x: Array[Array[Double]], maxLag: Int): Array[Array[Double]] = {
-    lagMatTrimBoth(x, maxLag, false)
+    lagMatTrimBoth(x, maxLag, includeOriginal = false)
   }
 }

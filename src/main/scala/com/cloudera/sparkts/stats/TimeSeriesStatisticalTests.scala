@@ -1,23 +1,23 @@
 /**
- * Copyright (c) 2015, Cloudera, Inc. All Rights Reserved.
- *
- * Cloudera, Inc. licenses this file to you under the Apache License,
- * Version 2.0 (the "License"). You may not use this file except in
- * compliance with the License. You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for
- * the specific language governing permissions and limitations under the
- * License.
- */
+  * Copyright (c) 2015, Cloudera, Inc. All Rights Reserved.
+  *
+  * Cloudera, Inc. licenses this file to you under the Apache License,
+  * Version 2.0 (the "License"). You may not use this file except in
+  * compliance with the License. You may obtain a copy of the License at
+  *
+  * http://www.apache.org/licenses/LICENSE-2.0
+  *
+  * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+  * CONDITIONS OF ANY KIND, either express or implied. See the License for
+  * the specific language governing permissions and limitations under the
+  * License.
+  */
 package com.cloudera.sparkts.stats
 
-import breeze.numerics.polyval
 import breeze.linalg.{DenseMatrix => BreezeDenseMatrix}
+import breeze.numerics.polyval
+import com.cloudera.sparkts.MatrixUtil.{fromBreeze, toBreeze}
 import com.cloudera.sparkts.{Lag, MatrixUtil, UnivariateTimeSeries}
-import com.cloudera.sparkts.MatrixUtil.{toBreeze, fromBreeze}
 import org.apache.commons.math3.distribution.{ChiSquaredDistribution, NormalDistribution}
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
 import org.apache.spark.mllib.linalg._
@@ -25,10 +25,10 @@ import org.apache.spark.mllib.linalg._
 import scala.collection.immutable.ListMap
 
 /**
- * Adapted from statsmodels:
- *    https://github.com/statsmodels/statsmodels/blob/master/statsmodels/tsa/stattools.py
- *    https://github.com/statsmodels/statsmodels/blob/master/statsmodels/tsa/adfvalues.py
- */
+  * Adapted from statsmodels:
+  * https://github.com/statsmodels/statsmodels/blob/master/statsmodels/tsa/stattools.py
+  * https://github.com/statsmodels/statsmodels/blob/master/statsmodels/tsa/adfvalues.py
+  */
 object TimeSeriesStatisticalTests {
   private val ADF_TAU_STAR = Map[String, Array[Double]](
     "nc" -> Array(-1.04, -1.53, -2.68, -3.09, -3.07, -3.77),
@@ -89,57 +89,58 @@ object TimeSeriesStatisticalTests {
   private val ADF_LARGE_SCALING = Array(1.0, 1e-1, 1e-1, 1e-2)
   private val ADF_TAU_LARGEP = Map[String, Array[Array[Double]]](
     "nc" -> Array(
-      Array(0.4797,9.3557,-0.6999,3.3066),
-      Array(1.5578,8.558,-2.083,-3.3549),
-      Array(2.2268,6.8093,-3.2362,-5.4448),
-      Array(2.7654,6.4502,-3.0811,-4.4946),
-      Array(3.2684,6.8051,-2.6778,-3.4972),
-      Array(3.7268,7.167,-2.3648,-2.8288)
+      Array(0.4797, 9.3557, -0.6999, 3.3066),
+      Array(1.5578, 8.558, -2.083, -3.3549),
+      Array(2.2268, 6.8093, -3.2362, -5.4448),
+      Array(2.7654, 6.4502, -3.0811, -4.4946),
+      Array(3.2684, 6.8051, -2.6778, -3.4972),
+      Array(3.7268, 7.167, -2.3648, -2.8288)
     ),
     "c" -> Array(
-      Array(1.7339,9.3202,-1.2745,-1.0368),
-      Array(2.1945,6.4695,-2.9198,-4.2377),
-      Array(2.5893,4.5168,-3.6529,-5.0074),
-      Array(3.0387,4.5452,-3.3666,-4.1921),
-      Array(3.5049,5.2098,-2.9158,-3.3468),
-      Array(3.9489,5.8933,-2.5359,-2.721)
+      Array(1.7339, 9.3202, -1.2745, -1.0368),
+      Array(2.1945, 6.4695, -2.9198, -4.2377),
+      Array(2.5893, 4.5168, -3.6529, -5.0074),
+      Array(3.0387, 4.5452, -3.3666, -4.1921),
+      Array(3.5049, 5.2098, -2.9158, -3.3468),
+      Array(3.9489, 5.8933, -2.5359, -2.721)
     ),
     "ct" -> Array(
-      Array(2.5261,6.1654,-3.7956,-6.0285),
-      Array(2.85,5.272,-3.6622,-5.1695),
-      Array(3.221,5.255,-3.2685,-4.1501),
-      Array(3.652,5.9758,-2.7483,-3.2081),
-      Array(4.0712,6.6428,-2.3464,-2.546),
-      Array(4.4735,7.1757,-2.0681,-2.1196)
+      Array(2.5261, 6.1654, -3.7956, -6.0285),
+      Array(2.85, 5.272, -3.6622, -5.1695),
+      Array(3.221, 5.255, -3.2685, -4.1501),
+      Array(3.652, 5.9758, -2.7483, -3.2081),
+      Array(4.0712, 6.6428, -2.3464, -2.546),
+      Array(4.4735, 7.1757, -2.0681, -2.1196)
     ),
     "ctt" -> Array(
-      Array(3.0778,4.9529,-4.1477,-5.9359),
-      Array(3.4713,5.967,-3.2507,-4.2286),
-      Array(3.8637,6.7852,-2.6286,-3.1381),
-      Array(4.2736,7.6199,-2.1534,-2.4026),
-      Array(4.6679,8.2618,-1.822,-1.9147),
-      Array(5.0009,8.3735,-1.6994,-1.6928)
+      Array(3.0778, 4.9529, -4.1477, -5.9359),
+      Array(3.4713, 5.967, -3.2507, -4.2286),
+      Array(3.8637, 6.7852, -2.6286, -3.1381),
+      Array(4.2736, 7.6199, -2.1534, -2.4026),
+      Array(4.6679, 8.2618, -1.822, -1.9147),
+      Array(5.0009, 8.3735, -1.6994, -1.6928)
     )
   ).mapValues {
-    arr => arr.map {
-      subarr => (0 until 4).map(i => ADF_LARGE_SCALING(i) * subarr(i)).toArray
-    }
+    arr =>
+      arr.map {
+        subarr => (0 until 4).map(i => ADF_LARGE_SCALING(i) * subarr(i)).toArray
+      }
   }
 
   /**
-   * Returns MacKinnon's approximate p-value for the given test statistic.
-   *
-   * MacKinnon, J.G. 1994  "Approximate Asymptotic Distribution Functions for
-   *    Unit-Root and Cointegration Tests." Journal of Business & Economics
-   *    Statistics, 12.2, 167-76.
-   *
-   * @param testStat "T-value" from an Augmented Dickey-Fuller regression.
-   * @param regression The method of regression that was used. Following MacKinnon's notation, this
-   *                   can be "c" for constant, "nc" for no constant, "ct" for constant and trend,
-   *                   and "ctt" for constant, trend, and trend-squared.
-   * @param n The number of series believed to be I(1). For (Augmented) Dickey-Fuller n = 1.
-   * @return The p-value for the ADF statistic using MacKinnon 1994.
-   */
+    * Returns MacKinnon's approximate p-value for the given test statistic.
+    *
+    * MacKinnon, J.G. 1994  "Approximate Asymptotic Distribution Functions for
+    * Unit-Root and Cointegration Tests." Journal of Business & Economics
+    * Statistics, 12.2, 167-76.
+    *
+    * @param testStat   "T-value" from an Augmented Dickey-Fuller regression.
+    * @param regression The method of regression that was used. Following MacKinnon's notation, this
+    *                   can be "c" for constant, "nc" for no constant, "ct" for constant and trend,
+    *                   and "ctt" for constant, trend, and trend-squared.
+    * @param n          The number of series believed to be I(1). For (Augmented) Dickey-Fuller n = 1.
+    * @return The p-value for the ADF statistic using MacKinnon 1994.
+    */
   private def mackinnonp(testStat: Double, regression: String = "c", n: Int = 1): Double = {
     val maxStat = ADF_TAU_MAX(regression)
     if (testStat > maxStat(n - 1)) {
@@ -196,24 +197,24 @@ object TimeSeriesStatisticalTests {
   }
 
   /**
-   * Augmented Dickey-Fuller test for a unit root in a univariate time series.
-   *
-   * The null hypothesis is that the time series contains a unit root, implying that
-   * differencing is required to make it stationary.  The alternative hypothesis is that the
-   * time series is stationary.  Lower values of the test statistic imply lower p-values,
-   * and thus higher likelihood of rejecting the null hypothesis.
-   *
-   * @param ts The time series.
-   * @return A tuple containing the test statistic and p value.
-   */
+    * Augmented Dickey-Fuller test for a unit root in a univariate time series.
+    *
+    * The null hypothesis is that the time series contains a unit root, implying that
+    * differencing is required to make it stationary.  The alternative hypothesis is that the
+    * time series is stationary.  Lower values of the test statistic imply lower p-values,
+    * and thus higher likelihood of rejecting the null hypothesis.
+    *
+    * @param ts The time series.
+    * @return A tuple containing the test statistic and p value.
+    */
   def adftest(ts: Vector, maxLag: Int, regression: String = "c"): (Double, Double) = {
     val breezeTs = toBreeze(ts)
-    
+
     // The vector that we get back from differencesAtLag preserves the first element so that so that the vector
     // returned is size-preserving.  For ADF, we just want the differenced values, so we slice to get a vector
     // that excludes the first element.
     val tsDiff = new DenseVector(UnivariateTimeSeries.differencesAtLag(ts, 1).toArray.slice(1, ts.size))
-    val lagMat = Lag.lagMatTrimBoth(tsDiff, maxLag, true)
+    val lagMat = Lag.lagMatTrimBoth(tsDiff, maxLag, includeOriginal = true)
     val nObs = lagMat.numRows
 
     // replace 0 tsDiff with level of ts
@@ -222,7 +223,7 @@ object TimeSeriesStatisticalTests {
     toBreeze(lagMat)(0 until nObs, 0 to 0) :=
       breezeTs(ts.size - nObs - 1 until ts.size - 1).toDenseVector.toDenseMatrix.t
     // trim
-    val tsdShort = toBreeze(tsDiff)(tsDiff.size - nObs to tsDiff.size - 1)
+    val tsdShort = toBreeze(tsDiff)(tsDiff.size - nObs until tsDiff.size)
 
     val ols = new OLSMultipleLinearRegression()
     ols.setNoIntercept(true)
@@ -237,17 +238,17 @@ object TimeSeriesStatisticalTests {
     val coefficients = ols.estimateRegressionParameters()
     val adfStat = coefficients(0) / olsParamStandardErrors(0)
 
-    val pValue = mackinnonp(adfStat, regression, 1)
+    val pValue = mackinnonp(adfStat, regression)
     (adfStat, pValue)
   }
 
   /**
-   * Durbin-Watson test for serial correlation.
-   *
-   * @return The Durbin-Watson test statistic.  A value close to 0.0 gives evidence for positive
-   *         serial correlation, a value close to 4.0 gives evidence for negative serial
-   *         correlation, and a value close to 2.0 gives evidence for no serial correlation.
-   */
+    * Durbin-Watson test for serial correlation.
+    *
+    * @return The Durbin-Watson test statistic.  A value close to 0.0 gives evidence for positive
+    *         serial correlation, a value close to 4.0 gives evidence for negative serial
+    *         correlation, and a value close to 2.0 gives evidence for no serial correlation.
+    */
   def dwtest(residuals: Vector): Double = {
     var residsSum = residuals(0) * residuals(0)
     var diffsSum = 0.0
@@ -262,22 +263,23 @@ object TimeSeriesStatisticalTests {
   }
 
   /**
-   * Breusch-Godfrey test for serial correlation in a model
-   * The statistic asymptotically follows an X^2 distribution with maxLag degrees of freedom,
-   * and provides a test for the null hypothesis of lack of serial correlation up to degree maxLag
-   * From http://en.wikipedia.org/wiki/Breusch%E2%80%93Godfrey_test:
-   * Given estimated residuals u_hat_t from an OLS model of the form
-   * y_t = a0 + a1 * x1_t + a2 * x2_t +  ... + u_t
-   * We calculate an auxiliary regression of the form:
-   * u_hat_t = a0 + a1 * x1_t + a2 * x2_t + ... + p1 * u_hat_t-1 + p2 * u_hat_t-2 ...
-   * Our test statistic is then (# of obs - maxLag) * (R^2 of the auxiliary regression)
-   * @return The Breusch-Godfrey statistic and p value
-   */
+    * Breusch-Godfrey test for serial correlation in a model
+    * The statistic asymptotically follows an X^2 distribution with maxLag degrees of freedom,
+    * and provides a test for the null hypothesis of lack of serial correlation up to degree maxLag
+    * From http://en.wikipedia.org/wiki/Breusch%E2%80%93Godfrey_test:
+    * Given estimated residuals u_hat_t from an OLS model of the form
+    * y_t = a0 + a1 * x1_t + a2 * x2_t +  ... + u_t
+    * We calculate an auxiliary regression of the form:
+    * u_hat_t = a0 + a1 * x1_t + a2 * x2_t + ... + p1 * u_hat_t-1 + p2 * u_hat_t-2 ...
+    * Our test statistic is then (# of obs - maxLag) * (R^2 of the auxiliary regression)
+    *
+    * @return The Breusch-Godfrey statistic and p value
+    */
   def bgtest(residuals: Vector, factors: Matrix, maxLag: Int): (Double, Double) = {
     val origResiduals = residuals.toArray
     val origFactors = MatrixUtil.matToRowArrs(factors) // X (wiki)
     // auxiliary regression model
-    val lagResids = Lag.lagMatTrimBoth(origResiduals, maxLag, false) // u_hat_lagged (wiki)
+    val lagResids = Lag.lagMatTrimBoth(origResiduals, maxLag, includeOriginal = false) // u_hat_lagged (wiki)
     val nObs = lagResids.length
     val dropLen = residuals.size - nObs // drop x # of elements to run new regression
     val auxOLS = new OLSMultipleLinearRegression() // auxiliary OLS for bg test
@@ -288,13 +290,14 @@ object TimeSeriesStatisticalTests {
   }
 
   /**
-   * Ljung-Box test for serial correlation in residuals up to lag `maxLag`. The null hypothesis
-   * is that values are independently distributed up to the given lag. The alternate hypothesis
-   * is that serial correlation is present. The test statistic follows a Chi-Squared distribution
-   * with `maxLag` degrees of freedom. See [[https://en.wikipedia.org/wiki/Ljung%E2%80%93Box_test]]
-   * for more information.
-   * @return the test statistic and the p-value associated with it.
-   */
+    * Ljung-Box test for serial correlation in residuals up to lag `maxLag`. The null hypothesis
+    * is that values are independently distributed up to the given lag. The alternate hypothesis
+    * is that serial correlation is present. The test statistic follows a Chi-Squared distribution
+    * with `maxLag` degrees of freedom. See [[https://en.wikipedia.org/wiki/Ljung%E2%80%93Box_test]]
+    * for more information.
+    *
+    * @return the test statistic and the p-value associated with it.
+    */
   def lbtest(residuals: Vector, maxLag: Int): (Double, Double) = {
     val autoCorrs = UnivariateTimeSeries.autocorr(residuals, maxLag)
     val n = residuals.size
@@ -307,16 +310,17 @@ object TimeSeriesStatisticalTests {
   }
 
   /**
-   * Breusch-Pagan test for heteroskedasticity in a model
-   * The statistic follows a X^2 distribution with (# of regressors - 1) degrees of freedom
-   * and provides a test for a null hypothesis of homoskedasticity
-   * From http://en.wikipedia.org/wiki/Breusch%E2%80%93Pagan_test
-   * Given a vector of estimated residuals (u) from an OLS model, we create an auxiliary regression
-   * that models the squared residuals (u^2) as a function of the original regressors (X)
-   * u^2 = beta * X
-   * We construct our test statistic as (# of observations) * R^2 of our auxiliary regression
-   * @return The Breusch-Pagan statistic and p value
-   */
+    * Breusch-Pagan test for heteroskedasticity in a model
+    * The statistic follows a X^2 distribution with (# of regressors - 1) degrees of freedom
+    * and provides a test for a null hypothesis of homoskedasticity
+    * From http://en.wikipedia.org/wiki/Breusch%E2%80%93Pagan_test
+    * Given a vector of estimated residuals (u) from an OLS model, we create an auxiliary regression
+    * that models the squared residuals (u^2) as a function of the original regressors (X)
+    * u^2 = beta * X
+    * We construct our test statistic as (# of observations) * R^2 of our auxiliary regression
+    *
+    * @return The Breusch-Pagan statistic and p value
+    */
   def bptest(residuals: Vector, factors: Matrix): (Double, Double) = {
     val residualsSquared = residuals.toArray.map(x => x * x) // u^2
     val origFactors = MatrixUtil.matToRowArrs(factors) // X
@@ -329,43 +333,44 @@ object TimeSeriesStatisticalTests {
   }
 
   /**
-   * Critical values associated with KPSS test when testing with a simple constant
-   * Source:
-   * Kwiatkowski, D., Phillips, P., Schmidt, P., & Shin, Y.
-   * Testing the null hypothesis of stationarity against the alternative of a unit root.
-   * Journal of Econometrics, 159-178.
-   */
+    * Critical values associated with KPSS test when testing with a simple constant
+    * Source:
+    * Kwiatkowski, D., Phillips, P., Schmidt, P., & Shin, Y.
+    * Testing the null hypothesis of stationarity against the alternative of a unit root.
+    * Journal of Econometrics, 159-178.
+    */
   private val kpssConstantCriticalValues = ListMap(
     0.10 -> 0.347, 0.05 -> 0.463, 0.025 -> 0.574, 0.01 -> 0.739
   )
 
   /**
-   * Critical values associated with KPSS test when testing with a constant and time trend
-   * Source:
-   * Kwiatkowski, D., Phillips, P., Schmidt, P., & Shin, Y.
-   * Testing the null hypothesis of stationarity against the alternative of a unit root.
-   * Journal of Econometrics, 159-178.
-   */
+    * Critical values associated with KPSS test when testing with a constant and time trend
+    * Source:
+    * Kwiatkowski, D., Phillips, P., Schmidt, P., & Shin, Y.
+    * Testing the null hypothesis of stationarity against the alternative of a unit root.
+    * Journal of Econometrics, 159-178.
+    */
   private val kpssConstantAndTrendCriticalValues = ListMap(
     0.10 -> 0.119, 0.05 -> 0.146, 0.025 -> 0.176, 0.01 -> 0.216
   )
 
   /**
-   * Performs the KPSS stationarity test (Kwiatkowski, Phillips, Schmidt and Shin). The null
-   * hypothesis corresponds to stationarity (level stationarity if method = "c", or trend
-   * stationarity if method = "ct"). If method = "c", a regression of the form ts_i = alpha +
-   * error_i is fit. If method = "ct", a regression of the form ts_i = alpha + beta * i + error_i.
-   * The test then performs a check for the variance of the errors. The null hypothesis of
-   * stationarity corresponds to a null hypothesis of variance = 0 for the errors.
-   * For more information please see pg 129 of [[http://faculty.washington
-   * .edu/ezivot/econ584/notes/unitroot.pdf]]. For the original paper on the test, please see
-   * [[http://www.deu.edu.tr/userweb/onder.hanedar/dosyalar/kpss.pdf]].
-   * Finally, the current implementation follows R's tseries package implementation closely, which
-   * can be found at [[https://cran.r-project.org/web/packages/tseries/index.html]]
-   * @param ts time series to test for stationarity
-   * @param method "c" or "ct", short for fitting with a constant or a constant and a time trend
-   * @return the KPSS statistic and a map of critical values according to the method selected
-   */
+    * Performs the KPSS stationarity test (Kwiatkowski, Phillips, Schmidt and Shin). The null
+    * hypothesis corresponds to stationarity (level stationarity if method = "c", or trend
+    * stationarity if method = "ct"). If method = "c", a regression of the form ts_i = alpha +
+    * error_i is fit. If method = "ct", a regression of the form ts_i = alpha + beta * i + error_i.
+    * The test then performs a check for the variance of the errors. The null hypothesis of
+    * stationarity corresponds to a null hypothesis of variance = 0 for the errors.
+    * For more information please see pg 129 of [[http://faculty.washington
+    * .edu/ezivot/econ584/notes/unitroot.pdf]]. For the original paper on the test, please see
+    * [[http://www.deu.edu.tr/userweb/onder.hanedar/dosyalar/kpss.pdf]].
+    * Finally, the current implementation follows R's tseries package implementation closely, which
+    * can be found at [[https://cran.r-project.org/web/packages/tseries/index.html]]
+    *
+    * @param ts     time series to test for stationarity
+    * @param method "c" or "ct", short for fitting with a constant or a constant and a time trend
+    * @return the KPSS statistic and a map of critical values according to the method selected
+    */
   def kpsstest(ts: Vector, method: String): (Double, Map[Double, Double]) = {
     require(List("c", "ct").contains(method), "trend must be c or ct")
     val n = ts.size
@@ -394,14 +399,14 @@ object TimeSeriesStatisticalTests {
   }
 
   /**
-   * Estimates long run variance using the Newey-West estimator, which consists on calculating
-   * the variance between lagged values and applying a weight that decreases as the lag increases.
-   * We translate the C implementation used by R's tseries:kpss.test, found at
-   * https://github.com/cran/tseries/blob/master/src/ppsum.c
-   * However, we add our own comments for clarity.
-   * See pg 87 of [[http://faculty.washington.edu/ezivot/econ584/notes/timeSeriesConcepts.pdf]] for
-   * more information
-   */
+    * Estimates long run variance using the Newey-West estimator, which consists on calculating
+    * the variance between lagged values and applying a weight that decreases as the lag increases.
+    * We translate the C implementation used by R's tseries:kpss.test, found at
+    * https://github.com/cran/tseries/blob/master/src/ppsum.c
+    * However, we add our own comments for clarity.
+    * See pg 87 of [[http://faculty.washington.edu/ezivot/econ584/notes/timeSeriesConcepts.pdf]] for
+    * more information
+    */
   private def neweyWestVarianceEstimator(errors: Array[Double], lag: Int): Double = {
     val n = errors.length
     var sumOfTerms = 0.0

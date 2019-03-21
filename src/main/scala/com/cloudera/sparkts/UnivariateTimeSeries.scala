@@ -1,48 +1,45 @@
 /**
- * Copyright (c) 2015, Cloudera, Inc. All Rights Reserved.
- *
- * Cloudera, Inc. licenses this file to you under the Apache License,
- * Version 2.0 (the "License"). You may not use this file except in
- * compliance with the License. You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
- * CONDITIONS OF ANY KIND, either express or implied. See the License for
- * the specific language governing permissions and limitations under the
- * License.
- */
+  * Copyright (c) 2015, Cloudera, Inc. All Rights Reserved.
+  *
+  * Cloudera, Inc. licenses this file to you under the Apache License,
+  * Version 2.0 (the "License"). You may not use this file except in
+  * compliance with the License. You may obtain a copy of the License at
+  *
+  * http://www.apache.org/licenses/LICENSE-2.0
+  *
+  * This software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+  * CONDITIONS OF ANY KIND, either express or implied. See the License for
+  * the specific language governing permissions and limitations under the
+  * License.
+  */
 
 package com.cloudera.sparkts
 
-import java.util.Arrays
+import java.util
 
 import breeze.stats._
 import com.cloudera.sparkts.models.{ARModel, Autoregression}
-
 import org.apache.commons.math3.analysis.interpolation.SplineInterpolator
 import org.apache.spark.mllib.linalg._
 
 object UnivariateTimeSeries {
 
   /**
-   * Lags the univariate time series
-   *
-   * Example input vector: (1.0, 2.0, 3.0, 4.0, 5.0)
-   *
-   * With lag 2 and includeOriginal = true should give output matrix:
-   *
-   * 3.0   2.0   1.0
-   * 4.0   3.0   2.0
-   * 5.0   4.0   3.0
-   */
-  def lag(ts: Vector, maxLag: Int, includeOriginal: Boolean): Matrix = {
+    * Lags the univariate time series
+    *
+    * Example input vector: (1.0, 2.0, 3.0, 4.0, 5.0)
+    *
+    * With lag 2 and includeOriginal = true should give output matrix:
+    *
+    * 3.0   2.0   1.0
+    * 4.0   3.0   2.0
+    * 5.0   4.0   3.0
+    */
+  def lag(ts: Vector, maxLag: Int, includeOriginal: Boolean): Matrix =
     Lag.lagMatTrimBoth(ts, maxLag, includeOriginal)
-  }
 
-  def autocorr(ts: Array[Double], numLags: Int): Array[Double] = {
+  def autocorr(ts: Array[Double], numLags: Int): Array[Double] =
     autocorr(new DenseVector(ts), numLags).toArray
-  }
 
   def quotients(ts: Vector, lag: Int): Vector = {
     val ret = new Array[Double](ts.size - lag)
@@ -65,8 +62,8 @@ object UnivariateTimeSeries {
   }
 
   /**
-   * Computes the sample autocorrelation of the given series.
-   */
+    * Computes the sample autocorrelation of the given series.
+    */
   def autocorr(ts: Vector, numLags: Int): Vector = {
     val corrs = new Array[Double](numLags)
     var i = 1
@@ -96,24 +93,24 @@ object UnivariateTimeSeries {
   }
 
   /**
-   * Trim leading NaNs from a series.
-   */
+    * Trim leading NaNs from a series.
+    */
   def trimLeading(ts: Vector): Vector = {
     val start = firstNotNaN(ts)
     if (start < ts.size) {
-      Vectors.dense(Arrays.copyOfRange(ts.toArray, start, ts.size))
+      Vectors.dense(util.Arrays.copyOfRange(ts.toArray, start, ts.size))
     } else {
       Vectors.zeros(0)
     }
   }
 
   /**
-   * Trim trailing NaNs from a series.
-   */
+    * Trim trailing NaNs from a series.
+    */
   def trimTrailing(ts: Vector): Vector = {
     val end = lastNotNaN(ts)
     if (end > 0) {
-      Vectors.dense(Arrays.copyOfRange(ts.toArray, 0, end))
+      Vectors.dense(util.Arrays.copyOfRange(ts.toArray, 0, end))
     } else {
       Vectors.zeros(0)
     }
@@ -154,19 +151,19 @@ object UnivariateTimeSeries {
   }
 
   /**
-   * Replace all NaNs with a specific value
-   */
+    * Replace all NaNs with a specific value
+    */
   def fillValue(values: Array[Double], filler: Double): Array[Double] = {
     fillValue(new DenseVector(values), filler).toArray
   }
 
   /**
-   * Replace all NaNs with a specific value
-   */
+    * Replace all NaNs with a specific value
+    */
   def fillValue(values: Vector, filler: Double): DenseVector = {
     val result = values.copy.toArray
     var i = 0
-    while (i < result.size) {
+    while (i < result.length) {
       if (result(i).isNaN) result(i) = filler
       i += 1
     }
@@ -191,9 +188,9 @@ object UnivariateTimeSeries {
           }
         }
 
-        if (lastExisting < 0 && nextExisting >= result.size) {
+        if (lastExisting < 0 && nextExisting >= result.length) {
           throw new IllegalArgumentException("Input is all NaNs!")
-        } else if (nextExisting >= result.size || // TODO: check this
+        } else if (nextExisting >= result.length || // TODO: check this
           (lastExisting >= 0 && i - lastExisting < nextExisting - i)) {
           result(i) = result(lastExisting)
         } else {
@@ -212,9 +209,9 @@ object UnivariateTimeSeries {
   }
 
   /**
-   * fills in NaN with the previously available not NaN, scanning from left to right.
-   * 1 NaN NaN 2 Nan -> 1 1 1 2 2
-   */
+    * fills in NaN with the previously available not NaN, scanning from left to right.
+    * 1 NaN NaN 2 Nan -> 1 1 1 2 2
+    */
   def fillPrevious(values: Vector): DenseVector = {
     val result = values.copy.toArray
     var filler = Double.NaN // initial value, maintains invariant
@@ -232,9 +229,9 @@ object UnivariateTimeSeries {
   }
 
   /**
-   * fills in NaN with the next available not NaN, scanning from right to left.
-   * 1 NaN NaN 2 Nan -> 1 2 2 2 NaN
-   */
+    * fills in NaN with the next available not NaN, scanning from right to left.
+    * 1 NaN NaN 2 Nan -> 1 2 2 2 NaN
+    */
   def fillNext(values: Vector): DenseVector = {
     val result = values.copy.toArray
     var filler = Double.NaN // initial value, maintains invariant
@@ -252,8 +249,8 @@ object UnivariateTimeSeries {
   }
 
   /**
-   * fills in NaN with a default value
-   */
+    * fills in NaN with a default value
+    */
   def fillWithDefault(values: Vector, filler: Double): DenseVector = {
     val result = values.copy.toArray
     var i = 0
@@ -294,10 +291,11 @@ object UnivariateTimeSeries {
   }
 
   /**
-   * Fill in NaN values using a natural cubic spline.
-   * @param values Vector to interpolate
-   * @return Interpolated vector
-   */
+    * Fill in NaN values using a natural cubic spline.
+    *
+    * @param values Vector to interpolate
+    * @return Interpolated vector
+    */
   def fillSpline(values: Vector): DenseVector = {
     val result = values.copy.toArray
     val interp = new SplineInterpolator()
@@ -323,12 +321,13 @@ object UnivariateTimeSeries {
   def ar(values: Vector, maxLag: Int): ARModel = Autoregression.fitModel(values, maxLag)
 
   /**
-   * Down sample by taking every nth element starting from offset phase
-   * @param values Vector to down sample
-   * @param n take every nth element
-   * @param phase offset from starting index
-   * @return downsampled vector with appropriate length
-   */
+    * Down sample by taking every nth element starting from offset phase
+    *
+    * @param values Vector to down sample
+    * @param n      take every nth element
+    * @param phase  offset from starting index
+    * @return downsampled vector with appropriate length
+    */
   def downsample(values: Vector, n: Int, phase: Int = 0): DenseVector = {
     val origLen = values.size
     val newLen = Math.ceil((values.size - phase) / n.toDouble).toInt
@@ -345,18 +344,18 @@ object UnivariateTimeSeries {
   }
 
   /**
-   * Up sample by inserting n - 1 elements into the original values vector, starting at index phase
-   * @param values the original data vector
-   * @param n the number of insertions between elements
-   * @param phase the offset to begin
-   * @param useZero fill with zeros rather than NaN
-   * @return upsampled vector filled with zeros or NaN, as specified by user
-   */
-  def upsample(
-      values: Vector,
-      n: Int,
-      phase: Int = 0,
-      useZero: Boolean = false): DenseVector = {
+    * Up sample by inserting n - 1 elements into the original values vector, starting at index phase
+    *
+    * @param values  the original data vector
+    * @param n       the number of insertions between elements
+    * @param phase   the offset to begin
+    * @param useZero fill with zeros rather than NaN
+    * @return upsampled vector filled with zeros or NaN, as specified by user
+    */
+  def upsample(values: Vector,
+               n: Int,
+               phase: Int = 0,
+               useZero: Boolean = false): DenseVector = {
     val filler = if (useZero) 0 else Double.NaN
     val origLen = values.size
     val newLen = origLen * n
@@ -373,19 +372,19 @@ object UnivariateTimeSeries {
   }
 
   /**
-   * Difference a vector with respect to the m-th prior element. Size-preserving by leaving first
-   * `m` elements intact. This is the inverse of the `inverseDifferences` function.
-   * @param ts Series to difference
-   * @param destTs Series to store the differenced values (and return for convenience)
-   * @param lag The difference lag (e.g. x means destTs(i) = ts(i) - ts(i - x), etc)
-   * @param startIndex the starting index for the differencing. Must be at least equal to lag
-   * @return the differenced vector, for convenience
-   */
-  def differencesAtLag(
-      ts: Vector,
-      destTs: Vector,
-      lag: Int,
-      startIndex: Int): Vector = {
+    * Difference a vector with respect to the m-th prior element. Size-preserving by leaving first
+    * `m` elements intact. This is the inverse of the `inverseDifferences` function.
+    *
+    * @param ts         Series to difference
+    * @param destTs     Series to store the differenced values (and return for convenience)
+    * @param lag        The difference lag (e.g. x means destTs(i) = ts(i) - ts(i - x), etc)
+    * @param startIndex the starting index for the differencing. Must be at least equal to lag
+    * @return the differenced vector, for convenience
+    */
+  def differencesAtLag(ts: Vector,
+                       destTs: Vector,
+                       lag: Int,
+                       startIndex: Int): Vector = {
     require(startIndex >= lag, "starting index cannot be less than lag")
     val diffedTs = if (destTs == null) ts.copy else destTs
     if (lag == 0) {
@@ -405,29 +404,30 @@ object UnivariateTimeSeries {
   }
 
   /**
-   * Convenience wrapper around `differencesAtLag[Vector[Double], Vector[Double], Int, Int]`
-   * @param ts vector to difference
-   * @param lag the difference lag (e.g. x means destTs(i) = ts(i) - ts(i - x), etc)
-   * @return the differenced vector, for convenience
-   */
+    * Convenience wrapper around `differencesAtLag[Vector[Double], Vector[Double], Int, Int]`
+    *
+    * @param ts  vector to difference
+    * @param lag the difference lag (e.g. x means destTs(i) = ts(i) - ts(i - x), etc)
+    * @return the differenced vector, for convenience
+    */
   def differencesAtLag(ts: Vector, lag: Int): Vector = {
     differencesAtLag(ts, null, lag, lag)
   }
 
   /**
-   * Calculate an "inverse-differenced" vector of a given lag. Size-preserving by leaving first
-   * `startIndex` elements intact. This is the inverse of the `differences` function.
-   * @param diffedTs differenced vector that we want to inverse
-   * @param destTs Series to store the added up values (and return for convenience)
-   * @param lag The difference lag (e.g. x means destTs(i) = diffedTs(i) + destTs(i - x), etc)
-   * @param startIndex the starting index for the differencing. Must be at least equal to lag
-   * @return the inverse differenced vector, for convenience
-   */
-  def inverseDifferencesAtLag(
-      diffedTs: Vector,
-      destTs: Vector,
-      lag: Int,
-      startIndex: Int): Vector = {
+    * Calculate an "inverse-differenced" vector of a given lag. Size-preserving by leaving first
+    * `startIndex` elements intact. This is the inverse of the `differences` function.
+    *
+    * @param diffedTs   differenced vector that we want to inverse
+    * @param destTs     Series to store the added up values (and return for convenience)
+    * @param lag        The difference lag (e.g. x means destTs(i) = diffedTs(i) + destTs(i - x), etc)
+    * @param startIndex the starting index for the differencing. Must be at least equal to lag
+    * @return the inverse differenced vector, for convenience
+    */
+  def inverseDifferencesAtLag(diffedTs: Vector,
+                              destTs: Vector,
+                              lag: Int,
+                              startIndex: Int): Vector = {
     require(startIndex >= lag, "starting index cannot be less than lag")
     val addedTs = if (destTs == null) diffedTs.copy else destTs
     if (lag == 0) {
@@ -447,24 +447,25 @@ object UnivariateTimeSeries {
   }
 
   /**
-   * Convenience wrapper around `inverseDifferencesAtLag[Vector[Double], Vector[Double], Int, Int]`
-   * @param diffedTs differenced vector that we want to inverse
-   * @param lag the difference lag (e.g. x means destTs(i) = ts(i) - ts(i - x), etc)
-   * @return the inverse differenced vector, for convenience
-   */
-  def inverseDifferencesAtLag(diffedTs: Vector, lag: Int): Vector = {
+    * Convenience wrapper around `inverseDifferencesAtLag[Vector[Double], Vector[Double], Int, Int]`
+    *
+    * @param diffedTs differenced vector that we want to inverse
+    * @param lag      the difference lag (e.g. x means destTs(i) = ts(i) - ts(i - x), etc)
+    * @return the inverse differenced vector, for convenience
+    */
+  def inverseDifferencesAtLag(diffedTs: Vector, lag: Int): Vector =
     inverseDifferencesAtLag(diffedTs, null, lag, lag)
-  }
 
   /**
-   * Performs differencing of order `d`. This means we recursively difference a vector a total of
-   * d-times. So that d = 2 is a vector of the differences of differences. Note that for each
-   * difference level, d_i, the element at ts(d_i - 1) corresponds to the value in the prior
-   * iteration.
-   * @param ts time series to difference
-   * @param d order of differencing
-   * @return a vector of the same length differenced to order d
-   */
+    * Performs differencing of order `d`. This means we recursively difference a vector a total of
+    * d-times. So that d = 2 is a vector of the differences of differences. Note that for each
+    * difference level, d_i, the element at ts(d_i - 1) corresponds to the value in the prior
+    * iteration.
+    *
+    * @param ts time series to difference
+    * @param d  order of differencing
+    * @return a vector of the same length differenced to order d
+    */
   def differencesOfOrderD(ts: Vector, d: Int): Vector = {
     // we create 2 copies to avoid copying with every call, and simply swap them as necessary
     // for higher order differencing
@@ -480,12 +481,13 @@ object UnivariateTimeSeries {
   }
 
   /**
-   * Inverses differencing of order `d`.
-   * @param diffedTs time series to reverse differencing process
-   * @param d order of differencing
-   * @return a vector of the same length, which when differenced to order ts, yields the original
-   *         vector provided
-   */
+    * Inverses differencing of order `d`.
+    *
+    * @param diffedTs time series to reverse differencing process
+    * @param d        order of differencing
+    * @return a vector of the same length, which when differenced to order ts, yields the original
+    *         vector provided
+    */
   def inverseDifferencesOfOrderD(diffedTs: Vector, d: Int): Vector = {
     val addedTs = diffedTs.copy
     for (i <- d to 1 by -1) {
@@ -494,9 +496,8 @@ object UnivariateTimeSeries {
     addedTs
   }
 
-  def rollSum(ts: Vector, n: Int): Vector = {
+  def rollSum(ts: Vector, n: Int): Vector =
     new DenseVector(ts.toArray.sliding(n).toList.map(_.sum).toIndexedSeq.toArray[Double])
-  }
 
 }
 
