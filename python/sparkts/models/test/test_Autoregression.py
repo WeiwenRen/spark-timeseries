@@ -1,9 +1,9 @@
 import numpy as np
 
-from sparkts.test.test_utils import PySparkTestCase
-
 from sparkts.models import Autoregression
 from sparkts.models.Autoregression import ARModel
+from sparkts.test.test_utils import PySparkTestCase
+
 
 class FitAutoregressionModelTestCase(PySparkTestCase):
     def test_fit_ar1_model(self):
@@ -22,12 +22,16 @@ class FitAutoregressionModelTestCase(PySparkTestCase):
         self.assertAlmostEqual(fittedModel.c, 1.5, delta=0.15)
         self.assertAlmostEqual(fittedModel.coefficients[0], 0.2, delta=0.03)
         self.assertAlmostEqual(fittedModel.coefficients[1], 0.3, delta=0.03)
-    
+
     def test_add_and_remove_time_dependent_effects(self):
         ts = np.random.normal(size=1000)
         model = ARModel(1.5, [0.2, 0.3], sc=self.sc)
         added = model.add_time_dependent_effects(ts)
         removed = model.remove_time_dependent_effects(added)
         for i in range(len(added)):
-            self.assertAlmostEqual(ts[i], removed[i], delta=0.001, msg=("failed at index %d: %f != %f" % (i, added[i], removed[i])))
-        
+            self.assertAlmostEqual(
+                ts[i],
+                removed[i],
+                delta=0.001,
+                msg=("failed at index %d: %f != %f" % (i, added[i], removed[i])),
+            )

@@ -1,7 +1,8 @@
+from pyspark.mllib.common import _java2py, _py2java
+from pyspark.mllib.linalg import Vectors
+
 from _model import PyModel
 
-from pyspark.mllib.common import _py2java, _java2py
-from pyspark.mllib.linalg import Vectors
 
 """
 """
@@ -56,4 +57,3 @@ class ARGARCHModel(PyModel):
     def sample_with_variances(self):
         rg = self._ctx._jvm.org.apache.commons.math3.random.JDKRandomGenerator()
         return _java2py(self._ctx, self._jmodel.sampleWithVariances(n, rg))
-        

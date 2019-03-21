@@ -1,7 +1,10 @@
-from . import _py2java_double_array, _nparray2breezevector, _nparray2breezematrix
+from pyspark.mllib.common import _java2py, _py2java
+
 from _model import PyModel
 
-from pyspark.mllib.common import _py2java, _java2py
+from . import (_nparray2breezematrix, _nparray2breezevector,
+               _py2java_double_array)
+
 
 """
 Models a time series as a function of itself (autoregressive terms) and exogenous variables, which

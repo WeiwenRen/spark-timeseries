@@ -1,8 +1,15 @@
-from . import _py2java_int_array, _py2java_double_array, _nparray2breezevector, _nparray2breezematrix, _py2scala_seq
+from pyspark.mllib.common import _java2py, _py2java
+from pyspark.mllib.linalg import Vectors
+
 from _model import PyModel
 
-from pyspark.mllib.common import _py2java, _java2py
-from pyspark.mllib.linalg import Vectors
+from . import (
+    _nparray2breezematrix,
+    _nparray2breezevector,
+    _py2java_double_array,
+    _py2java_int_array,
+    _py2scala_seq,
+)
 
 
 """
@@ -16,6 +23,7 @@ The basic idea is that for usual regression models
 e should be IID ~ N(0,sigma^2^), but in time series problems, e tends to have time series
 characteristics.
 """
+
 
 def fit_model(ts, regressors, method="cochrane-orcutt", optimizationArgs=None, sc=None):
     """
@@ -35,11 +43,17 @@ def fit_model(ts, regressors, method="cochrane-orcutt", optimizationArgs=None, s
     returns an RegressionARIMAModel
     """
     assert sc != None, "Missing SparkContext"
-    
+
     jvm = sc._jvm
-    
-    jmodel = jvm.com.cloudera.sparkts.models.RegressionARIMA.fitModel(_nparray2breezevector(sc, ts), _nparray2breezematrix(sc, regressors), method, _py2scala_seq(sc, optimizationArgs))
+
+    jmodel = jvm.com.cloudera.sparkts.models.RegressionARIMA.fitModel(
+        _nparray2breezevector(sc, ts),
+        _nparray2breezematrix(sc, regressors),
+        method,
+        _py2scala_seq(sc, optimizationArgs),
+    )
     return RegressionARIMAModel(jmodel=jmodel, sc=sc)
+
 
 def fit_cochrane_orcutt(ts, regressors, maxIter=10, sc=None):
     """
@@ -69,20 +83,31 @@ def fit_cochrane_orcutt(ts, regressors, maxIter=10, sc=None):
     
     Returns instance of class [[RegressionARIMAModel]]
     """
-    
+
     assert sc != None, "Missing SparkContext"
-    
+
     jvm = sc._jvm
-    
+
     fnord = _nparray2breezematrix(sc, regressors)
     print(fnord)
-    
-    jmodel = jvm.com.cloudera.sparkts.models.RegressionARIMA.fitCochraneOrcutt(_nparray2breezevector(sc, ts), _nparray2breezematrix(sc, regressors), maxIter)
+
+    jmodel = jvm.com.cloudera.sparkts.models.RegressionARIMA.fitCochraneOrcutt(
+        _nparray2breezevector(sc, ts), _nparray2breezematrix(sc, regressors), maxIter
+    )
     return RegressionARIMAModel(jmodel=jmodel, sc=sc)
-    
+
 
 class RegressionARIMAModel(PyModel):
-    def __init__(self, regressionCoeff=None, d=0, q=0, coefficients=None, hasIntercept=False, jmodel=None, sc=None):
+    def __init__(
+        self,
+        regressionCoeff=None,
+        d=0,
+        q=0,
+        coefficients=None,
+        hasIntercept=False,
+        jmodel=None,
+        sc=None,
+    ):
         """
         Parameters
         ----------
@@ -98,11 +123,14 @@ class RegressionARIMAModel(PyModel):
 
         self._ctx = sc
         if jmodel == None:
-            self._jmodel = self._ctx._jvm.com.cloudera.sparkts.models.RegressionARIMAModel(_py2java_double_array(self._ctx, regressionCoeff), _py2java_int_array(self._ctx, arimaOrders), _py2scala_arraybuffer(self._ctx, arimaCoeff))
+            self._jmodel = self._ctx._jvm.com.cloudera.sparkts.models.RegressionARIMAModel(
+                _py2java_double_array(self._ctx, regressionCoeff),
+                _py2java_int_array(self._ctx, arimaOrders),
+                _py2scala_arraybuffer(self._ctx, arimaCoeff),
+            )
         else:
             self._jmodel = jmodel
-            
+
         self.regressionCoeff = _java2py(sc, self._jmodel.regressionCoeff())
         self.arimaOrders = _java2py(sc, self._jmodel.arimaOrders())
         self.arimaCoeff = _java2py(sc, self._jmodel.arimaCoeff())
-    

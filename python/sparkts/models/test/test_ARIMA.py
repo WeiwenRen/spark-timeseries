@@ -1,12 +1,12 @@
-import unittest
 import os
+import unittest
 
 import numpy as np
 
-from sparkts.test.test_utils import PySparkTestCase
-
 from sparkts.models import ARIMA
 from sparkts.models.ARIMA import ARIMAModel, fit_model
+from sparkts.test.test_utils import PySparkTestCase
+
 
 def data_file_as_nparray(fn):
     dn = os.path.dirname(os.path.realpath(__file__))

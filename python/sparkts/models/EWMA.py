@@ -1,7 +1,8 @@
+from pyspark.mllib.common import _java2py, _py2java
+from pyspark.mllib.linalg import Vectors
+
 from _model import PyModel
 
-from pyspark.mllib.common import _py2java, _java2py
-from pyspark.mllib.linalg import Vectors
 
 """
 Fits an Exponentially Weight Moving Average model (EWMA) (aka. Simple Exponential Smoothing) to
@@ -9,6 +10,7 @@ a time series. The model is defined as S_t = (1 - a) * X_t + a * S_{t - 1}, wher
 smoothing parameter, X is the original series, and S is the smoothed series. For more
 information, please see https://en.wikipedia.org/wiki/Exponential_smoothing.
 """
+
 
 def fit_model(ts, sc=None):
     """
@@ -31,17 +33,22 @@ def fit_model(ts, sc=None):
     assert sc != None, "Missing SparkContext"
 
     jvm = sc._jvm
-    jmodel = jvm.com.cloudera.sparkts.models.EWMA.fitModel(_py2java(sc, Vectors.dense(ts)))
+    jmodel = jvm.com.cloudera.sparkts.models.EWMA.fitModel(
+        _py2java(sc, Vectors.dense(ts))
+    )
     return EWMAModel(jmodel=jmodel, sc=sc)
+
 
 class EWMAModel(PyModel):
     def __init__(self, smoothing=0.0, jmodel=None, sc=None):
         assert sc != None, "Missing SparkContext"
-        
+
         self._ctx = sc
         if jmodel == None:
-            self._jmodel = self._ctx._jvm.com.cloudera.sparkts.models.EWMAModel(smoothing)
+            self._jmodel = self._ctx._jvm.com.cloudera.sparkts.models.EWMAModel(
+                smoothing
+            )
         else:
             self._jmodel = jmodel
-        
+
         self.smoothing = self._jmodel.smoothing()

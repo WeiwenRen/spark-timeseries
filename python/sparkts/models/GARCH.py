@@ -1,10 +1,12 @@
-from _model import PyModel
-
-from pyspark.mllib.common import _py2java, _java2py
+from pyspark.mllib.common import _java2py, _py2java
 from pyspark.mllib.linalg import Vectors
 
+from _model import PyModel
+
+
 """
 """
+
 
 def fit_model(ts, sc=None):
     """
@@ -18,21 +20,26 @@ def fit_model(ts, sc=None):
     Returns a GARCH model
     """
     assert sc != None, "Missing SparkContext"
-    
+
     jvm = sc._jvm
-    jmodel = jvm.com.cloudera.sparkts.models.GARCH.fitModel(_py2java(sc, Vectors.dense(ts)))
+    jmodel = jvm.com.cloudera.sparkts.models.GARCH.fitModel(
+        _py2java(sc, Vectors.dense(ts))
+    )
     return GARCHModel(jmodel=jmodel, sc=sc)
+
 
 class GARCHModel(PyModel):
     def __init__(self, omega=0.0, alpha=0.0, beta=0.0, jmodel=None, sc=None):
         assert sc != None, "Missing SparkContext"
-        
+
         self._ctx = sc
         if jmodel == None:
-            self._jmodel = self._ctx._jvm.com.cloudera.sparkts.models.GARCHModel(omega, alpha, beta)
+            self._jmodel = self._ctx._jvm.com.cloudera.sparkts.models.GARCHModel(
+                omega, alpha, beta
+            )
         else:
             self._jmodel = jmodel
-        
+
         self.omega = self._jmodel.omega()
         self.alpha = self._jmodel.alpha()
         self.beta = self._jmodel.beta()
@@ -47,7 +54,7 @@ class GARCHModel(PyModel):
         """
         gradient = self._jmodel.gradient(_py2java(self._ctx, Vectors.dense(ts)))
         return _java2py(self._ctx, gradient)
-    
+
     def log_likelihood(self, ts):
         """
         Returns the log likelihood of the parameters on the given time series.
@@ -56,7 +63,7 @@ class GARCHModel(PyModel):
         """
         likelihood = self._jmodel.logLikelihood(_py2java(self._ctx, Vectors.dense(ts)))
         return _java2py(self._ctx, likelihood)
-    
+
     def sample(self, n):
         """
         Samples a random time series of a given length with the properties of the model.

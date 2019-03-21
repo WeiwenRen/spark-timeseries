@@ -1,10 +1,12 @@
 import unittest
+
+from pyspark.context import SparkContext
+
 from sparkts.utils import add_pyspark_path, quiet_py4j
 
 add_pyspark_path()
 quiet_py4j()
 
-from pyspark.context import SparkContext
 
 class PySparkTestCase(unittest.TestCase):
     def setUp(self):
@@ -19,5 +21,3 @@ class PySparkTestCase(unittest.TestCase):
         # To avoid Akka rebinding to the same port, since it doesn't unbind
         # immediately on shutdown
         self.sc._jvm.System.clearProperty("spark.driver.port")
-
-

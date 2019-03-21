@@ -1,7 +1,9 @@
-from py4j.java_gateway import java_import
-from .utils import datetime_to_nanos
 import numpy as np
 import pandas as pd
+from py4j.java_gateway import java_import
+
+from .utils import datetime_to_nanos
+
 
 class DateTimeIndex(object):
     """
@@ -12,7 +14,7 @@ class DateTimeIndex(object):
     To avoid confusion between the meaning of "index" as it appears in "DateTimeIndex" and "index"
     as a location in an array, in the context of this class, we use "location", or "loc", to refer
     to the latter.
-    """ 
+    """
 
     def __init__(self, jdt_index):
         self._jdt_index = jdt_index
@@ -33,7 +35,7 @@ class DateTimeIndex(object):
     def last(self):
         """Returns the latest timestamp in the index, as a Pandas Timestamp."""
         return pd.Timestamp(self._zdt_to_nanos(self._jdt_index.last()))
-    
+
     def datetime_at_loc(self, loc):
         """Returns the timestamp at the given integer location as a Pandas Timestamp."""
         return pd.Timestamp(self._zdt_to_nanos(self._jdt_index.dateTimeAtLoc(loc)))
@@ -78,23 +80,26 @@ class DateTimeIndex(object):
     def __repr__(self):
         return self._jdt_index.toString()
 
+
 class _Frequency(object):
     def __eq__(self, other):
         return self._jfreq.equals(other._jfreq)
 
     def __ne__(self, other):
-       return not self.__eq__(other)
+        return not self.__eq__(other)
+
 
 class DayFrequency(_Frequency):
     """
     A frequency that can be used for a uniform DateTimeIndex, where the period is given in days.
     """
-  
+
     def __init__(self, days, sc):
         self._jfreq = sc._jvm.com.cloudera.sparkts.DayFrequency(days)
 
     def days(self):
         return self._jfreq.days()
+
 
 class HourFrequency(_Frequency):
     """
@@ -107,6 +112,7 @@ class HourFrequency(_Frequency):
     def hours(self):
         return self._jfreq.hours()
 
+
 class BusinessDayFrequency(object):
     """
     A frequency that can be used for a uniform DateTimeIndex, where the period is given in
@@ -115,16 +121,19 @@ class BusinessDayFrequency(object):
     """
 
     def __init__(self, bdays, firstDayOfWeek, sc):
-        self._jfreq = sc._jvm.com.cloudera.sparkts.BusinessDayFrequency(bdays, firstDayOfWeek)
+        self._jfreq = sc._jvm.com.cloudera.sparkts.BusinessDayFrequency(
+            bdays, firstDayOfWeek
+        )
 
     def __eq__(self, other):
-         return self._jfreq.equals(other._jfreq)
+        return self._jfreq.equals(other._jfreq)
 
     def __ne__(self, other):
         return not self.__eq__(other)
 
     def days(self):
         return self._jfreq.days()
+
 
 def uniform(start, end=None, periods=None, freq=None, sc=None):
     """
@@ -140,17 +149,24 @@ def uniform(start, end=None, periods=None, freq=None, sc=None):
         freq : a frequency object
         sc : SparkContext
     """
-    dtmodule = sc._jvm.com.cloudera.sparkts.__getattr__('DateTimeIndex$').__getattr__('MODULE$')
+    dtmodule = sc._jvm.com.cloudera.sparkts.__getattr__("DateTimeIndex$").__getattr__(
+        "MODULE$"
+    )
     if freq is None:
         raise ValueError("Missing frequency")
     elif end is None and periods == None:
         raise ValueError("Need an end date or number of periods")
     elif end is not None:
-        return DateTimeIndex(dtmodule.uniformFromInterval( \
-            datetime_to_nanos(start), datetime_to_nanos(end), freq._jfreq))
+        return DateTimeIndex(
+            dtmodule.uniformFromInterval(
+                datetime_to_nanos(start), datetime_to_nanos(end), freq._jfreq
+            )
+        )
     else:
-        return DateTimeIndex(dtmodule.uniform( \
-            datetime_to_nanos(start), periods, freq._jfreq))
+        return DateTimeIndex(
+            dtmodule.uniform(datetime_to_nanos(start), periods, freq._jfreq)
+        )
+
 
 def irregular(timestamps, sc):
     """
@@ -162,11 +178,14 @@ def irregular(timestamps, sc):
             Timestamps
         sc : SparkContext
     """
-    dtmodule = sc._jvm.com.cloudera.sparkts.__getattr__('DateTimeIndex$').__getattr__('MODULE$')
+    dtmodule = sc._jvm.com.cloudera.sparkts.__getattr__("DateTimeIndex$").__getattr__(
+        "MODULE$"
+    )
     arr = sc._gateway.new_array(sc._jvm.long, len(timestamps))
     for i in xrange(len(timestamps)):
         arr[i] = datetime_to_nanos(timestamps[i])
     return DateTimeIndex(dtmodule.irregular(arr))
+
 
 class MillisecondFrequency(_Frequency):
     """
@@ -191,6 +210,7 @@ class MicrosecondFrequency(_Frequency):
     def microseconds(self):
         return self._jfreq.microseconds()
 
+
 class SecondFrequency(_Frequency):
     """
     A frequency that can be used for a uniform DateTimeIndex, where the period is given in seconds.
@@ -202,16 +222,18 @@ class SecondFrequency(_Frequency):
     def seconds(self):
         return self._jfreq.seconds()
 
+
 class MinuteFrequency(_Frequency):
     """
     A frequency that can be used for a uniform DateTimeIndex, where the period is given in minutes.
     """
 
-    def __init__(self, minutes, sc): 
+    def __init__(self, minutes, sc):
         self._jfreq = sc._jvm.com.cloudera.sparkts.MinuteFrequency(minutes)
 
     def minutes(self):
         return self._jfreq.minutes()
+
 
 class MonthFrequency(_Frequency):
     """
@@ -223,6 +245,7 @@ class MonthFrequency(_Frequency):
 
     def months(self):
         return self._jfreq.months()
+
 
 class YearFrequency(_Frequency):
     """

@@ -1,8 +1,9 @@
-from . import _py2java_double_array
+from pyspark.mllib.common import _java2py, _py2java
+from pyspark.mllib.linalg import Vectors
+
 from _model import PyModel
 
-from pyspark.mllib.common import _py2java, _java2py
-from pyspark.mllib.linalg import Vectors
+from . import _py2java_double_array
 
 
 """

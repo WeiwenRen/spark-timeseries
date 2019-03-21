@@ -1,13 +1,16 @@
-from py4j.java_gateway import java_import
-from pyspark import RDD
-from pyspark.serializers import FramedSerializer, SpecialLengths, write_int, read_int
-from pyspark.sql import DataFrame
-from .utils import datetime_to_nanos
-from .datetimeindex import DateTimeIndex, irregular
 import struct
+from io import BytesIO
+
 import numpy as np
 import pandas as pd
-from io import BytesIO
+from py4j.java_gateway import java_import
+from pyspark import RDD
+from pyspark.serializers import FramedSerializer, SpecialLengths, read_int, write_int
+from pyspark.sql import DataFrame
+
+from .datetimeindex import DateTimeIndex, irregular
+from .utils import datetime_to_nanos
+
 
 class TimeSeriesRDD(RDD):
     """
@@ -20,20 +23,21 @@ class TimeSeriesRDD(RDD):
     within the RDD has a String key to identify it.
     """
 
-    def __init__(self, dt_index, rdd, jtsrdd = None, sc = None):
+    def __init__(self, dt_index, rdd, jtsrdd=None, sc=None):
         if jtsrdd == None:
             # Construct from a Python RDD object and a Python DateTimeIndex
             jvm = rdd.ctx._jvm
-            jrdd = rdd._reserialize(_TimeSeriesSerializer())._jrdd.mapToPair( \
-                jvm.com.cloudera.sparkts.BytesToKeyAndSeries())
-            self._jtsrdd = jvm.com.cloudera.sparkts.api.java.JavaTimeSeriesRDDFactory.timeSeriesRDD( \
-                dt_index._jdt_index, jrdd)
+            jrdd = rdd._reserialize(_TimeSeriesSerializer())._jrdd.mapToPair(
+                jvm.com.cloudera.sparkts.BytesToKeyAndSeries()
+            )
+            self._jtsrdd = jvm.com.cloudera.sparkts.api.java.JavaTimeSeriesRDDFactory.timeSeriesRDD(
+                dt_index._jdt_index, jrdd
+            )
             RDD.__init__(self, rdd._jrdd, rdd.ctx)
         else:
             # Construct from a py4j.JavaObject pointing to a JavaTimeSeriesRDD and a Python SparkContext
             jvm = sc._jvm
-            jrdd = jtsrdd.map( \
-                jvm.com.cloudera.sparkts.KeyAndSeriesToBytes())
+            jrdd = jtsrdd.map(jvm.com.cloudera.sparkts.KeyAndSeriesToBytes())
             RDD.__init__(self, jrdd, sc, _TimeSeriesSerializer())
             self._jtsrdd = jtsrdd
 
@@ -74,7 +78,7 @@ class TimeSeriesRDD(RDD):
         """
         return TimeSeriesRDD(None, None, self._jtsrdd.fill(method), self.ctx)
 
-    def map_series(self, fn, dt_index = None):
+    def map_series(self, fn, dt_index=None):
         """
         Returns a TimeSeriesRDD, with a transformation applied to all the series in this RDD.
 
@@ -89,7 +93,7 @@ class TimeSeriesRDD(RDD):
             A DateTimeIndex for the produced TimeseriesRDD.
         """
         if dt_index == None:
-          dt_index = self.index()
+            dt_index = self.index()
         return TimeSeriesRDD(dt_index, self.map(fn))
 
     def to_instants(self):
@@ -99,8 +103,9 @@ class TimeSeriesRDD(RDD):
         This essentially transposes the TimeSeriesRDD, producing an RDD of tuples of datetime and
         a numpy array containing all the observations that occurred at that time.
         """
-        jrdd = self._jtsrdd.toInstants(-1).map( \
-            self.ctx._jvm.com.cloudera.sparkts.InstantToBytes())
+        jrdd = self._jtsrdd.toInstants(-1).map(
+            self.ctx._jvm.com.cloudera.sparkts.InstantToBytes()
+        )
         return RDD(jrdd, self.ctx, _InstantDeserializer())
 
     def to_instants_dataframe(self, sql_ctx):
@@ -120,7 +125,9 @@ class TimeSeriesRDD(RDD):
         jindex = self._jtsrdd.index()
         return DateTimeIndex(jindex)
 
-    def to_observations_dataframe(self, sql_ctx, ts_col='timestamp', key_col='key', val_col='value'):
+    def to_observations_dataframe(
+        self, sql_ctx, ts_col="timestamp", key_col="key", val_col="value"
+    ):
         """
         Returns a DataFrame of observations, each containing a timestamp, a key, and a value.
 
@@ -162,7 +169,9 @@ class TimeSeriesRDD(RDD):
         The resulting TimeSeriesRDD has a slimmed down DateTimeIndex, missing all the instants
         for which any series in the RDD contained a NaN.
         """
-        return TimeSeriesRDD(None, None, self._jtsrdd.removeInstantsWithNaNs(), self.ctx)
+        return TimeSeriesRDD(
+            None, None, self._jtsrdd.removeInstantsWithNaNs(), self.ctx
+        )
 
     def filter(self, predicate):
         return TimeSeriesRDD(self.index(), super(TimeSeriesRDD, self).filter(predicate))
@@ -196,7 +205,10 @@ class TimeSeriesRDD(RDD):
         ----------
         new_index : DateTimeIndex
         """
-        return TimeSeriesRDD(None, None, self._jtsrdd.withIndex(new_index._jdt_index), self.ctx)
+        return TimeSeriesRDD(
+            None, None, self._jtsrdd.withIndex(new_index._jdt_index), self.ctx
+        )
+
 
 def time_series_rdd_from_pandas_series_rdd(series_rdd):
     """
@@ -212,6 +224,7 @@ def time_series_rdd_from_pandas_series_rdd(series_rdd):
     first = series_rdd.first()
     dt_index = irregular(first[1].index, series_rdd.ctx)
     return TimeSeriesRDD(dt_index, series_rdd.mapValues(lambda x: x.values))
+
 
 def time_series_rdd_from_observations(dt_index, df, ts_col, key_col, val_col):
     """
@@ -232,9 +245,11 @@ def time_series_rdd_from_observations(dt_index, df, ts_col, key_col, val_col):
         The name of the column in the DataFrame containing the values.
     """
     jvm = df._sc._jvm
-    jtsrdd = jvm.com.cloudera.sparkts.api.java.JavaTimeSeriesRDDFactory.timeSeriesRDDFromObservations( \
-      dt_index._jdt_index, df._jdf, ts_col, key_col, val_col)
+    jtsrdd = jvm.com.cloudera.sparkts.api.java.JavaTimeSeriesRDDFactory.timeSeriesRDDFromObservations(
+        dt_index._jdt_index, df._jdf, ts_col, key_col, val_col
+    )
     return TimeSeriesRDD(None, None, jtsrdd, df._sc)
+
 
 class _TimeSeriesSerializer(FramedSerializer):
     """Serializes (key, vector) pairs to and from bytes.  Must be compatible with the Scala
@@ -244,49 +259,49 @@ class _TimeSeriesSerializer(FramedSerializer):
     def dumps(self, obj):
         stream = BytesIO()
         (key, vector) = obj
-        key_bytes = key.encode('utf-8')
+        key_bytes = key.encode("utf-8")
         write_int(len(key_bytes), stream)
         stream.write(key_bytes)
 
         write_int(len(vector), stream)
         # TODO: maybe some optimized way to write this all at once?
         for value in vector:
-            stream.write(struct.pack('!d', value))
+            stream.write(struct.pack("!d", value))
         stream.seek(0)
         return stream.read()
 
     def loads(self, obj):
         stream = BytesIO(obj)
         key_length = read_int(stream)
-        key = stream.read(key_length).decode('utf-8')
+        key = stream.read(key_length).decode("utf-8")
 
         return (key, _read_vec(stream))
 
     def __repr__(self):
-        return '_TimeSeriesSerializer'
+        return "_TimeSeriesSerializer"
+
 
 class _InstantDeserializer(FramedSerializer):
     """
     Serializes (timestamp, vector) pairs to an from bytes.  Must be compatible with the Scala
     implementation in com.cloudera.sparkts.InstantToBytes
     """
-    
+
     def loads(self, obj):
         stream = BytesIO(obj)
-        timestamp_nanos = struct.unpack('!q', stream.read(8))[0]
+        timestamp_nanos = struct.unpack("!q", stream.read(8))[0]
 
         return (pd.Timestamp(timestamp_nanos), _read_vec(stream))
 
     def __repr__(self):
         return "_InstantDeserializer"
 
+
 def _read_vec(stream):
     vector_length = read_int(stream)
     vector = np.empty(vector_length)
     # TODO: maybe some optimized way to read this all at once?
     for i in xrange(vector_length):
-        vector[i] = struct.unpack('!d', stream.read(8))[0]
-    
+        vector[i] = struct.unpack("!d", stream.read(8))[0]
+
     return vector
-
-
